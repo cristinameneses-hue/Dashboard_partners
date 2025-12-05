@@ -1,0 +1,193 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-bg-primary: #0f172a;
+  --color-bg-secondary: #1e293b;
+  --color-bg-tertiary: #334155;
+  --color-text-primary: #f8fafc;
+  --color-text-secondary: #94a3b8;
+  --color-accent: #f59e0b;
+  --color-accent-secondary: #0ea5e9;
+  --color-surface: #1e293b;
+  --color-surface-light: #334155;
+  --color-surface-dark: #0f172a;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Outfit', system-ui, sans-serif;
+  background: linear-gradient(135deg, var(--color-bg-primary) 0%, #1a1a2e 50%, var(--color-bg-primary) 100%);
+  color: var(--color-text-primary);
+  min-height: 100vh;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-bg-tertiary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+@layer components {
+  .card {
+    background-color: rgba(30, 41, 59, 0.8);
+    backdrop-filter: blur(4px);
+    @apply rounded-2xl border border-white/5 shadow-xl;
+  }
+  
+  .card-header {
+    @apply px-6 py-4 border-b border-white/5;
+  }
+  
+  .card-body {
+    @apply p-6;
+  }
+  
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 ease-out;
+  }
+  
+  .btn-primary {
+    @apply bg-sky-600 hover:bg-sky-500 text-white shadow-lg;
+  }
+  
+  .btn-accent {
+    background-color: var(--color-accent);
+    @apply hover:brightness-110 text-slate-900 shadow-lg;
+  }
+  
+  .input {
+    background-color: rgba(15, 23, 42, 0.5);
+    @apply border border-white/10 rounded-lg px-4 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition-all;
+  }
+  
+  .table-container {
+    @apply overflow-x-auto rounded-xl;
+  }
+  
+  .table {
+    @apply w-full text-left;
+  }
+  
+  .table th {
+    background-color: rgba(15, 23, 42, 0.5);
+    @apply px-4 py-3 text-sm font-semibold text-slate-300 uppercase tracking-wider;
+  }
+  
+  .table td {
+    @apply px-4 py-3 text-sm border-t border-white/5;
+  }
+  
+  .table tr:hover td {
+    @apply bg-white/5;
+  }
+  
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  
+  .badge-success {
+    @apply bg-emerald-500/20 text-emerald-400;
+  }
+  
+  .badge-warning {
+    @apply bg-amber-500/20 text-amber-400;
+  }
+  
+  .badge-danger {
+    @apply bg-red-500/20 text-red-400;
+  }
+  
+  .kpi-card {
+    @apply card p-6 relative overflow-hidden;
+  }
+  
+  .kpi-card::before {
+    content: '';
+    @apply absolute inset-0 pointer-events-none;
+    background: linear-gradient(to bottom right, rgba(255,255,255,0.05), transparent);
+  }
+}
+
+/* Dropdown styles */
+.dropdown-content {
+  @apply absolute top-full left-0 mt-2 w-64 bg-slate-800 border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.4s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s ease-out forwards;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+.stagger-1 { animation-delay: 0.1s; }
+.stagger-2 { animation-delay: 0.2s; }
+.stagger-3 { animation-delay: 0.3s; }
+.stagger-4 { animation-delay: 0.4s; }
+
+/* Custom checkbox */
+.checkbox-custom {
+  @apply w-5 h-5 rounded border border-white/20 flex items-center justify-center transition-all;
+}
+
+.checkbox-custom.checked {
+  @apply border-sky-500 bg-sky-500/20;
+}
+
+/* Hover effects */
+.hover-lift {
+  @apply transition-transform duration-200;
+}
+
+.hover-lift:hover {
+  @apply -translate-y-0.5;
+}
