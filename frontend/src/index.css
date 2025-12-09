@@ -3,16 +3,27 @@
 @tailwind utilities;
 
 :root {
-  --color-bg-primary: #0f172a;
-  --color-bg-secondary: #1e293b;
-  --color-bg-tertiary: #334155;
-  --color-text-primary: #f8fafc;
-  --color-text-secondary: #94a3b8;
-  --color-accent: #f59e0b;
-  --color-accent-secondary: #0ea5e9;
-  --color-surface: #1e293b;
-  --color-surface-light: #334155;
-  --color-surface-dark: #0f172a;
+  /* Colores corporativos LudaFarma */
+  --luda-green: #00A651;
+  --luda-green-dark: #008C45;
+  --luda-green-light: #4CD964;
+  --luda-yellow: #F5A623;
+  --luda-yellow-light: #FFD93D;
+  
+  /* Fondos */
+  --color-bg-primary: #F5F7FA;
+  --color-bg-secondary: #FFFFFF;
+  --color-bg-tertiary: #E8F5E9;
+  
+  /* Textos */
+  --color-text-primary: #1A1A1A;
+  --color-text-secondary: #5F6368;
+  --color-text-muted: #9AA0A6;
+  
+  /* Superficies */
+  --color-surface: #FFFFFF;
+  --color-surface-hover: #F0F0F0;
+  --color-border: #E0E0E0;
 }
 
 * {
@@ -23,7 +34,7 @@
 
 body {
   font-family: 'Outfit', system-ui, sans-serif;
-  background: linear-gradient(135deg, var(--color-bg-primary) 0%, #1a1a2e 50%, var(--color-bg-primary) 100%);
+  background: var(--color-bg-primary);
   color: var(--color-text-primary);
   min-height: 100vh;
 }
@@ -35,27 +46,26 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-bg-secondary);
+  background: #f1f1f1;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-bg-tertiary);
+  background: var(--luda-green);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: var(--luda-green-dark);
 }
 
 @layer components {
   .card {
-    background-color: rgba(30, 41, 59, 0.8);
-    backdrop-filter: blur(4px);
-    @apply rounded-2xl border border-white/5 shadow-xl;
+    background-color: var(--color-surface);
+    @apply rounded-2xl border border-gray-200 shadow-sm;
   }
   
   .card-header {
-    @apply px-6 py-4 border-b border-white/5;
+    @apply px-6 py-4 border-b border-gray-100;
   }
   
   .card-body {
@@ -67,17 +77,21 @@ body {
   }
   
   .btn-primary {
-    @apply bg-sky-600 hover:bg-sky-500 text-white shadow-lg;
+    background-color: var(--luda-green);
+    @apply hover:brightness-110 text-white shadow-md;
+  }
+
+  .btn-primary:hover {
+    background-color: var(--luda-green-dark);
   }
   
   .btn-accent {
-    background-color: var(--color-accent);
-    @apply hover:brightness-110 text-slate-900 shadow-lg;
+    background-color: var(--luda-yellow);
+    @apply hover:brightness-110 text-gray-900 shadow-md;
   }
   
   .input {
-    background-color: rgba(15, 23, 42, 0.5);
-    @apply border border-white/10 rounded-lg px-4 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition-all;
+    @apply border border-gray-300 rounded-lg px-4 py-2 text-gray-800 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-all;
   }
   
   .table-container {
@@ -89,16 +103,24 @@ body {
   }
   
   .table th {
-    background-color: rgba(15, 23, 42, 0.5);
-    @apply px-4 py-3 text-sm font-semibold text-slate-300 uppercase tracking-wider;
+    background-color: var(--luda-green);
+    @apply px-4 py-3 text-sm font-semibold text-white uppercase tracking-wider;
+  }
+
+  .table th:first-child {
+    @apply rounded-tl-lg;
+  }
+
+  .table th:last-child {
+    @apply rounded-tr-lg;
   }
   
   .table td {
-    @apply px-4 py-3 text-sm border-t border-white/5;
+    @apply px-4 py-3 text-sm border-b border-gray-100 text-gray-700;
   }
   
   .table tr:hover td {
-    @apply bg-white/5;
+    @apply bg-green-50;
   }
   
   .badge {
@@ -106,15 +128,15 @@ body {
   }
   
   .badge-success {
-    @apply bg-emerald-500/20 text-emerald-400;
+    @apply bg-green-100 text-green-700;
   }
   
   .badge-warning {
-    @apply bg-amber-500/20 text-amber-400;
+    @apply bg-yellow-100 text-yellow-700;
   }
   
   .badge-danger {
-    @apply bg-red-500/20 text-red-400;
+    @apply bg-red-100 text-red-700;
   }
   
   .kpi-card {
@@ -124,13 +146,26 @@ body {
   .kpi-card::before {
     content: '';
     @apply absolute inset-0 pointer-events-none;
-    background: linear-gradient(to bottom right, rgba(255,255,255,0.05), transparent);
+    background: linear-gradient(to bottom right, rgba(0, 166, 81, 0.05), transparent);
+  }
+
+  /* Sidebar styles */
+  .sidebar {
+    background: linear-gradient(180deg, var(--luda-green) 0%, var(--luda-green-dark) 100%);
+  }
+
+  .sidebar-link {
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl mb-2 transition-all duration-200 text-white/80 hover:text-white hover:bg-white/10;
+  }
+
+  .sidebar-link.active {
+    @apply bg-white/20 text-white;
   }
 }
 
 /* Dropdown styles */
 .dropdown-content {
-  @apply absolute top-full left-0 mt-2 w-64 bg-slate-800 border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden;
+  @apply absolute top-full left-0 mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden;
 }
 
 /* Animations */
@@ -174,15 +209,6 @@ body {
 .stagger-3 { animation-delay: 0.3s; }
 .stagger-4 { animation-delay: 0.4s; }
 
-/* Custom checkbox */
-.checkbox-custom {
-  @apply w-5 h-5 rounded border border-white/20 flex items-center justify-center transition-all;
-}
-
-.checkbox-custom.checked {
-  @apply border-sky-500 bg-sky-500/20;
-}
-
 /* Hover effects */
 .hover-lift {
   @apply transition-transform duration-200;
@@ -190,4 +216,13 @@ body {
 
 .hover-lift:hover {
   @apply -translate-y-0.5;
+}
+
+/* Green gradient backgrounds */
+.bg-luda-gradient {
+  background: linear-gradient(135deg, var(--luda-green) 0%, var(--luda-green-dark) 100%);
+}
+
+.bg-luda-light {
+  background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
 }

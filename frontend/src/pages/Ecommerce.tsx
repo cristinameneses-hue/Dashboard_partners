@@ -232,8 +232,8 @@ export default function Ecommerce() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
-          <div className="text-xl text-slate-400">Cargando métricas...</div>
+          <div className="w-12 h-12 border-4 border-[#00A651] border-t-transparent rounded-full animate-spin"></div>
+          <div className="text-xl text-gray-500">Cargando métricas...</div>
         </div>
       </div>
     );
@@ -242,7 +242,7 @@ export default function Ecommerce() {
   if (error) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-xl text-red-400">{error}</div>
+        <div className="text-xl text-red-600">{error}</div>
       </div>
     );
   }
@@ -254,17 +254,17 @@ export default function Ecommerce() {
       {/* Header */}
       <div className="flex items-start justify-between animate-fade-in">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">
             Ecommerce Metrics
           </h1>
-          <p className="text-slate-400">
+          <p className="text-gray-500">
             Métricas de rendimiento por partner y categoría
           </p>
         </div>
         {data && (
-          <div className="text-right">
-            <p className="text-xs text-slate-500">Período</p>
-            <p className="text-sm text-slate-300">
+          <div className="text-right bg-white rounded-lg px-4 py-2 shadow-sm border border-gray-200">
+            <p className="text-xs text-gray-400">Período</p>
+            <p className="text-sm text-gray-700 font-medium">
               {new Date(data.period_start).toLocaleDateString('es-ES')} - {new Date(data.period_end).toLocaleDateString('es-ES')}
             </p>
           </div>
@@ -289,7 +289,7 @@ export default function Ecommerce() {
           {categoryMetrics.map((cat) => (
             <div 
               key={cat.category}
-              className="card p-4 cursor-pointer hover:border-white/20 transition-all group"
+              className="bg-white rounded-xl p-4 cursor-pointer border border-gray-200 hover:border-green-300 hover:shadow-lg transition-all group"
               onClick={() => {
                 const categoryInfo = PARTNER_CATEGORIES.find(c => c.name === cat.category);
                 if (categoryInfo) {
@@ -302,7 +302,7 @@ export default function Ecommerce() {
                   className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: cat.color }}
                 />
-                <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">
+                <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {cat.category}
                 </span>
               </div>
@@ -310,12 +310,12 @@ export default function Ecommerce() {
                 <p className="text-lg font-bold" style={{ color: cat.color }}>
                   {formatCurrency(cat.net_gmv)}
                 </p>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-gray-500">
                   {formatNumber(cat.net_bookings)} bookings
                 </p>
               </div>
-              <div className="mt-2 pt-2 border-t border-white/5">
-                <p className="text-xs text-slate-500">
+              <div className="mt-2 pt-2 border-t border-gray-100">
+                <p className="text-xs text-gray-400">
                   {cat.partners_count} partner{cat.partners_count > 1 ? 's' : ''}
                 </p>
               </div>
@@ -427,8 +427,8 @@ export default function Ecommerce() {
 
       {/* Partners Table */}
       <div className="card animate-fade-in">
-        <div className="card-header flex items-center justify-between">
-          <h3 className="font-semibold text-white">
+        <div className="card-header flex items-center justify-between bg-gray-50">
+          <h3 className="font-semibold text-gray-800">
             {selectedPartners.length > 0 
               ? `Partners Seleccionados (${filteredPartners.length})`
               : 'Todos los Partners'
@@ -437,7 +437,7 @@ export default function Ecommerce() {
           {selectedPartners.length > 0 && (
             <button
               onClick={() => setSelectedPartners([])}
-              className="text-xs text-slate-400 hover:text-white transition-colors"
+              className="text-xs text-green-600 hover:text-green-700 font-medium transition-colors"
             >
               Ver todos
             </button>
