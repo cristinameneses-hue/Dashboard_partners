@@ -1,0 +1,54 @@
+interface LudaLogoProps {
+  className?: string;
+  size?: number;
+}
+
+export default function LudaLogo({ className = '', size = 48 }: LudaLogoProps) {
+  return (
+    <svg 
+      xmlns="http://www.w3.org/2000/svg" 
+      viewBox="0 0 100 100" 
+      width={size} 
+      height={size}
+      className={className}
+    >
+      {/* Bocadillo de chat verde con cola inferior izquierda */}
+      <path 
+        d="M50 6 C74 6 94 26 94 50 C94 74 74 94 50 94 C42 94 34 91 28 87 L10 96 L16 76 C10 68 6 59 6 50 C6 26 26 6 50 6 Z" 
+        fill="#3CB371"
+      />
+      
+      {/* Estructura molecular LUDA Partners */}
+      {/* Rama inferior izquierda */}
+      <line x1="38" y1="52" x2="28" y2="70" stroke="white" strokeWidth="4.5" strokeLinecap="round"/>
+      <circle cx="28" cy="70" r="5" fill="white"/>
+      
+      {/* Conexión central a nodo superior izquierdo */}
+      <line x1="38" y1="52" x2="30" y2="38" stroke="white" strokeWidth="4.5" strokeLinecap="round"/>
+      <circle cx="30" cy="38" r="5" fill="white"/>
+      
+      {/* Rama desde nodo superior izquierdo hacia arriba izquierda */}
+      <line x1="30" y1="38" x2="18" y2="28" stroke="white" strokeWidth="4.5" strokeLinecap="round"/>
+      <circle cx="18" cy="28" r="5" fill="white"/>
+      
+      {/* Nodo central */}
+      <circle cx="38" cy="52" r="5" fill="white"/>
+      
+      {/* Conexión central hacia derecha superior */}
+      <line x1="38" y1="52" x2="55" y2="38" stroke="white" strokeWidth="4.5" strokeLinecap="round"/>
+      <circle cx="55" cy="38" r="5" fill="white"/>
+      
+      {/* Y superior derecha - rama hacia arriba */}
+      <line x1="55" y1="38" x2="68" y2="22" stroke="white" strokeWidth="4.5" strokeLinecap="round"/>
+      <circle cx="68" cy="22" r="5" fill="white"/>
+      
+      {/* Y superior derecha - rama hacia derecha */}
+      <line x1="55" y1="38" x2="78" y2="42" stroke="white" strokeWidth="4.5" strokeLinecap="round"/>
+      <circle cx="78" cy="42" r="5" fill="white"/>
+      
+      {/* Conexión inferior desde rama inferior a nodo medio-derecho */}
+      <line x1="28" y1="70" x2="48" y2="62" stroke="white" strokeWidth="4.5" strokeLinecap="round"/>
+      <circle cx="48" cy="62" r="5" fill="white"/>
+    </svg>
+  );
+}

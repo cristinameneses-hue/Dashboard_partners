@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { PARTNER_CATEGORIES } from '../types';
+import LudaLogo from './LudaLogo';
 
 interface LayoutProps {
   children: ReactNode;
@@ -21,9 +22,7 @@ export default function Layout({ children }: LayoutProps) {
         {/* Logo */}
         <div className="p-6">
           <Link to="/" className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center shadow-md">
-              <span className="text-2xl font-bold text-[#00A651]">L</span>
-            </div>
+            <LudaLogo size={48} />
             <div>
               <h1 className="font-bold text-xl text-white">LUDA</h1>
               <p className="text-xs text-white/70">Partners Dashboard</p>
@@ -117,9 +116,7 @@ export default function Layout({ children }: LayoutProps) {
                 <p className="text-xs text-gray-400">Última actualización</p>
                 <p className="text-sm text-gray-600">{new Date().toLocaleString('es-ES')}</p>
               </div>
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#00A651] to-[#008C45] flex items-center justify-center text-white font-bold">
-                L
-              </div>
+              <LudaLogo size={40} />
             </div>
           </div>
         </header>
