@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { PARTNER_CATEGORIES } from '../types';
 import LudaLogo from './LudaLogo';
+import LudaLogoFull from './LudaLogoFull';
 
 interface LayoutProps {
   children: ReactNode;
@@ -20,13 +21,9 @@ export default function Layout({ children }: LayoutProps) {
       {/* Sidebar */}
       <aside className="w-64 fixed h-full sidebar shadow-xl">
         {/* Logo */}
-        <div className="p-6">
-          <Link to="/" className="flex items-center gap-3">
-            <LudaLogo size={48} />
-            <div>
-              <h1 className="font-bold text-xl text-white">LUDA</h1>
-              <p className="text-xs text-white/70">Partners Dashboard</p>
-            </div>
+        <div className="p-4 pb-2">
+          <Link to="/" className="block">
+            <LudaLogoFull height={55} />
           </Link>
         </div>
 
