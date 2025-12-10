@@ -6,7 +6,10 @@ import type { PeriodType } from '../types';
 
 // Format numbers with thousands separator (punto de miles)
 function formatNumber(num: number): string {
-  return Math.round(num).toLocaleString('es-ES');
+  return new Intl.NumberFormat('es-ES', {
+    useGrouping: true,
+    maximumFractionDigits: 0
+  }).format(Math.round(num));
 }
 
 // Format currency with decimals (for average ticket, etc.)
