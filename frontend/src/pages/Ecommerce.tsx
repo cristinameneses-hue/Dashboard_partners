@@ -4,6 +4,8 @@ import FilterBar from '../components/FilterBar';
 import MetricCard from '../components/MetricCard';
 import DataTable from '../components/DataTable';
 import StackedBarChart from '../components/charts/StackedBarChart';
+import LineChartComponent from '../components/charts/LineChartComponent';
+import PharmacyComboChart from '../components/charts/PharmacyComboChart';
 import { useEcommerceMetrics, useTimeSeries, ChartGroupBy } from '../hooks/useEcommerce';
 import type { PeriodType, EcommerceMetrics } from '../types';
 import { PARTNER_CATEGORIES, getCategoryByPartner } from '../types';
@@ -262,16 +264,18 @@ export default function Ecommerce() {
         )}
       </div>
 
-      {/* Filter Bar */}
-      <div className="card p-4 animate-fade-in stagger-1 relative" style={{ zIndex: 100 }}>
-        <FilterBar
-          periodType={periodType}
-          onPeriodChange={handlePeriodChange}
-          customStart={customStart}
-          customEnd={customEnd}
-          selectedPartners={selectedPartners}
-          onPartnersChange={setSelectedPartners}
-        />
+      {/* Filter Bar - Sticky */}
+      <div className="sticky top-[73px] z-50 -mx-8 px-8 py-3 bg-gray-50/95 backdrop-blur-sm border-b border-gray-200 shadow-sm">
+        <div className="card p-4" style={{ zIndex: 100 }}>
+          <FilterBar
+            periodType={periodType}
+            onPeriodChange={handlePeriodChange}
+            customStart={customStart}
+            customEnd={customEnd}
+            selectedPartners={selectedPartners}
+            onPartnersChange={setSelectedPartners}
+          />
+        </div>
       </div>
 
       {/* Category Summary Cards */}
@@ -420,6 +424,38 @@ export default function Ecommerce() {
           data={timeSeriesData?.data || []}
           title="€ GMV Gross, Net & Cancelled"
           type="gmv"
+        />
+      </div>
+
+      {/* Line Charts - Averages */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in stagger-4">
+        <LineChartComponent
+          data={timeSeriesData?.data || []}
+          title="Avg. orders per pharmacy"
+          dataKey="avg_orders_per_pharmacy"
+          color="#22c55e"
+        />
+        <LineChartComponent
+          data={timeSeriesData?.data || []}
+          title="Avg. GMV per pharmacy"
+          dataKey="avg_gmv_per_pharmacy"
+          color="#22c55e"
+          isCurrency
+        />
+      </div>
+
+      {/* More Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in stagger-4">
+        <LineChartComponent
+          data={timeSeriesData?.data || []}
+          title="Avg. order value (Ticket medio)"
+          dataKey="average_ticket"
+          color="#22c55e"
+          isCurrency
+        />
+        <PharmacyComboChart
+          data={timeSeriesData?.data || []}
+          title="Pharmacies with orders"
         />
       </div>
 

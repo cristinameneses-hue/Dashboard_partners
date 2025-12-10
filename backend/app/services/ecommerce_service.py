@@ -245,7 +245,11 @@ class EcommerceService:
                 net_bookings=item.get("net_bookings", 0),
                 gross_gmv=round(item.get("gross_gmv", 0), 2),
                 cancelled_gmv=round(item.get("cancelled_gmv", 0), 2),
-                net_gmv=round(item.get("net_gmv", 0), 2)
+                net_gmv=round(item.get("net_gmv", 0), 2),
+                pharmacies_with_orders=item.get("pharmacies_with_orders", 0),
+                average_ticket=round(item.get("average_ticket", 0), 2),
+                avg_orders_per_pharmacy=round(item.get("avg_orders_per_pharmacy", 0), 2),
+                avg_gmv_per_pharmacy=round(item.get("avg_gmv_per_pharmacy", 0), 2)
             ))
         
         return result

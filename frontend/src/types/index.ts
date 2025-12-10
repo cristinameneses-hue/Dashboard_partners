@@ -59,6 +59,10 @@ export interface TimeSeriesPoint {
   gross_gmv: number;
   cancelled_gmv: number;
   net_gmv: number;
+  pharmacies_with_orders: number;
+  average_ticket: number;
+  avg_orders_per_pharmacy: number;
+  avg_gmv_per_pharmacy: number;
 }
 
 export interface TimeSeriesResponse {

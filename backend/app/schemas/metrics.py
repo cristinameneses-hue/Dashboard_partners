@@ -82,6 +82,10 @@ class TimeSeriesPoint(BaseModel):
     gross_gmv: float = 0.0
     cancelled_gmv: float = 0.0
     net_gmv: float = 0.0
+    pharmacies_with_orders: int = 0
+    average_ticket: float = 0.0
+    avg_orders_per_pharmacy: float = 0.0
+    avg_gmv_per_pharmacy: float = 0.0
 
 
 class TimeSeriesResponse(BaseModel):

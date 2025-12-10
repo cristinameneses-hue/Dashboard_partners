@@ -336,7 +336,8 @@ class BookingRepository:
                     "gross_gmv": {"$sum": "$gmv"},
                     "cancelled_gmv": {
                         "$sum": {"$cond": ["$is_cancelled", "$gmv", 0]}
-                    }
+                    },
+                    "unique_pharmacies": {"$addToSet": "$target"}
                 }
             },
             {"$sort": sort_fields},
@@ -349,7 +350,44 @@ class BookingRepository:
                     "net_bookings": {"$subtract": ["$gross_bookings", "$cancelled_bookings"]},
                     "gross_gmv": self._round_to_2_decimals("$gross_gmv"),
                     "cancelled_gmv": self._round_to_2_decimals("$cancelled_gmv"),
-                    "net_gmv": self._round_to_2_decimals({"$subtract": ["$gross_gmv", "$cancelled_gmv"]})
+                    "net_gmv": self._round_to_2_decimals({"$subtract": ["$gross_gmv", "$cancelled_gmv"]}),
+                    "pharmacies_with_orders": {"$size": "$unique_pharmacies"},
+                    "average_ticket": {
+                        "$cond": [
+                            {"$gt": [{"$subtract": ["$gross_bookings", "$cancelled_bookings"]}, 0]},
+                            self._round_to_2_decimals({
+                                "$divide": [
+                                    {"$subtract": ["$gross_gmv", "$cancelled_gmv"]},
+                                    {"$subtract": ["$gross_bookings", "$cancelled_bookings"]}
+                                ]
+                            }),
+                            0
+                        ]
+                    },
+                    "avg_orders_per_pharmacy": {
+                        "$cond": [
+                            {"$gt": [{"$size": "$unique_pharmacies"}, 0]},
+                            self._round_to_2_decimals({
+                                "$divide": [
+                                    {"$subtract": ["$gross_bookings", "$cancelled_bookings"]},
+                                    {"$size": "$unique_pharmacies"}
+                                ]
+                            }),
+                            0
+                        ]
+                    },
+                    "avg_gmv_per_pharmacy": {
+                        "$cond": [
+                            {"$gt": [{"$size": "$unique_pharmacies"}, 0]},
+                            self._round_to_2_decimals({
+                                "$divide": [
+                                    {"$subtract": ["$gross_gmv", "$cancelled_gmv"]},
+                                    {"$size": "$unique_pharmacies"}
+                                ]
+                            }),
+                            0
+                        ]
+                    }
                 }
             }
         ]
