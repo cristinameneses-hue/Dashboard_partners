@@ -6,6 +6,7 @@ import DataTable from '../components/DataTable';
 import StackedBarChart from '../components/charts/StackedBarChart';
 import LineChartComponent from '../components/charts/LineChartComponent';
 import PharmacyComboChart from '../components/charts/PharmacyComboChart';
+import TimeSeriesTable from '../components/charts/TimeSeriesTable';
 import { useEcommerceMetrics, useTimeSeries, ChartGroupBy } from '../hooks/useEcommerce';
 import type { PeriodType, EcommerceMetrics } from '../types';
 import { PARTNER_CATEGORIES, getCategoryByPartner } from '../types';
@@ -66,6 +67,7 @@ export default function Ecommerce() {
   const [customEnd, setCustomEnd] = useState<string>();
   const [selectedPartners, setSelectedPartners] = useState<string[]>([]);
   const [chartGroupBy, setChartGroupBy] = useState<ChartGroupBy>('month');
+  const [tableGroupBy, setTableGroupBy] = useState<ChartGroupBy>('month');
 
   const { data, loading, error } = useEcommerceMetrics(
     periodType,
@@ -78,6 +80,15 @@ export default function Ecommerce() {
   const { data: timeSeriesData } = useTimeSeries(
     chartPeriodType,
     chartGroupBy,
+    selectedPartners.length > 0 ? selectedPartners : undefined,
+    periodType === 'custom' ? customStart : undefined,
+    periodType === 'custom' ? customEnd : undefined
+  );
+
+  // Time series data for table (with its own groupBy)
+  const { data: tableTimeSeriesData } = useTimeSeries(
+    chartPeriodType,
+    tableGroupBy,
     selectedPartners.length > 0 ? selectedPartners : undefined,
     periodType === 'custom' ? customStart : undefined,
     periodType === 'custom' ? customEnd : undefined
@@ -466,6 +477,41 @@ export default function Ecommerce() {
         <PharmacyComboChart
           data={timeSeriesData?.data || []}
           title="Pharmacies with orders"
+        />
+      </div>
+
+      {/* Data Tables Section */}
+      <div className="space-y-4 animate-fade-in stagger-5">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-800">
+            📊 Tabla de Datos
+            {selectedPartners.length > 0 && (
+              <span className="text-sm font-normal text-gray-500 ml-2">
+                ({selectedPartners.length} partner{selectedPartners.length > 1 ? 's' : ''} seleccionado{selectedPartners.length > 1 ? 's' : ''})
+              </span>
+            )}
+          </h3>
+          <div className="flex gap-2">
+            {CHART_GROUP_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                onClick={() => setTableGroupBy(option.value)}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                  tableGroupBy === option.value
+                    ? 'bg-green-600 text-white shadow-md'
+                    : 'bg-white text-gray-600 border border-gray-200 hover:border-green-300 hover:bg-green-50'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        
+        <TimeSeriesTable
+          data={tableTimeSeriesData?.data || []}
+          groupBy={tableGroupBy}
+          title={`Métricas ${tableGroupBy === 'week' ? 'Semanales' : tableGroupBy === 'month' ? 'Mensuales' : tableGroupBy === 'quarter' ? 'Trimestrales' : 'Anuales'}`}
         />
       </div>
 
