@@ -73,6 +73,23 @@ class ShortageResponse(BaseModel):
     metrics: ShortageMetrics
 
 
+class TimeSeriesPoint(BaseModel):
+    """Time series data point for charts."""
+    period: str  # Label like "Ene 25", "S12 2025", "Q1 2025", "2025"
+    gross_bookings: int = 0
+    cancelled_bookings: int = 0
+    net_bookings: int = 0
+    gross_gmv: float = 0.0
+    cancelled_gmv: float = 0.0
+    net_gmv: float = 0.0
+
+
+class TimeSeriesResponse(BaseModel):
+    """Response for time series data."""
+    group_by: str  # week, month, quarter, year
+    data: List[TimeSeriesPoint]
+
+
 class PartnerSummary(BaseModel):
     """Summary of a single partner for the dashboard."""
     partner: str

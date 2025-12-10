@@ -3,8 +3,8 @@ import { createColumnHelper } from '@tanstack/react-table';
 import FilterBar from '../components/FilterBar';
 import MetricCard from '../components/MetricCard';
 import DataTable from '../components/DataTable';
-import BarChartComponent from '../components/charts/BarChartComponent';
-import { useEcommerceMetrics } from '../hooks/useEcommerce';
+import StackedBarChart from '../components/charts/StackedBarChart';
+import { useEcommerceMetrics, useTimeSeries, ChartGroupBy } from '../hooks/useEcommerce';
 import type { PeriodType, EcommerceMetrics } from '../types';
 import { PARTNER_CATEGORIES, getCategoryByPartner } from '../types';
 
@@ -51,16 +51,34 @@ interface CategoryMetrics {
   partners_count: number;
 }
 
+const CHART_GROUP_OPTIONS: { value: ChartGroupBy; label: string }[] = [
+  { value: 'week', label: 'Semana' },
+  { value: 'month', label: 'Mes' },
+  { value: 'quarter', label: 'Trimestre' },
+  { value: 'year', label: 'Año' },
+];
+
 export default function Ecommerce() {
   const [periodType, setPeriodType] = useState<PeriodType>('this_month');
   const [customStart, setCustomStart] = useState<string>();
   const [customEnd, setCustomEnd] = useState<string>();
   const [selectedPartners, setSelectedPartners] = useState<string[]>([]);
+  const [chartGroupBy, setChartGroupBy] = useState<ChartGroupBy>('month');
 
   const { data, loading, error } = useEcommerceMetrics(
     periodType,
     customStart,
     customEnd
+  );
+
+  // Time series for charts - use this_year by default for charts
+  const chartPeriodType = periodType === 'custom' ? 'custom' : 'this_year';
+  const { data: timeSeriesData } = useTimeSeries(
+    chartPeriodType,
+    chartGroupBy,
+    selectedPartners.length > 0 ? selectedPartners : undefined,
+    periodType === 'custom' ? customStart : undefined,
+    periodType === 'custom' ? customEnd : undefined
   );
 
   const handlePeriodChange = (
@@ -200,49 +218,6 @@ export default function Ecommerce() {
       cell: (info) => formatNumber(info.getValue()),
     }),
   ], []);
-
-  // Prepare chart data by category
-  const gmvByCategoryData = useMemo(() => 
-    categoryMetrics
-      .sort((a, b) => b.net_gmv - a.net_gmv)
-      .map(cat => ({
-        name: cat.category,
-        value: cat.net_gmv,
-        fill: cat.color
-      })),
-    [categoryMetrics]
-  );
-
-  // Prepare chart data by partner
-  const gmvChartData = useMemo(() => 
-    filteredPartners
-      .sort((a, b) => b.net_gmv - a.net_gmv)
-      .slice(0, 10)
-      .map(p => {
-        const category = getCategoryByPartner(p.partner);
-        return {
-          name: p.partner.replace('-', ' '),
-          value: p.net_gmv,
-          fill: category?.color || '#64748b'
-        };
-      }),
-    [filteredPartners]
-  );
-
-  const bookingsChartData = useMemo(() =>
-    filteredPartners
-      .sort((a, b) => b.net_bookings - a.net_bookings)
-      .slice(0, 10)
-      .map(p => {
-        const category = getCategoryByPartner(p.partner);
-        return {
-          name: p.partner.replace('-', ' '),
-          value: p.net_bookings,
-          fill: category?.color || '#64748b'
-        };
-      }),
-    [filteredPartners]
-  );
 
   if (loading) {
     return (
@@ -411,39 +386,41 @@ export default function Ecommerce() {
         </div>
       )}
 
-      {/* Charts */}
+      {/* Chart Time Filter */}
+      <div className="flex items-center gap-4 animate-fade-in stagger-4">
+        <span className="text-sm font-medium text-gray-600">Agrupar por:</span>
+        <div className="flex gap-2">
+          {CHART_GROUP_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              onClick={() => setChartGroupBy(option.value)}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                chartGroupBy === option.value
+                  ? 'bg-green-600 text-white shadow-md'
+                  : 'bg-white text-gray-600 border border-gray-200 hover:border-green-300 hover:bg-green-50'
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+        <span className="text-xs text-gray-400 ml-2">
+          (Datos del año actual{selectedPartners.length > 0 ? ` • ${selectedPartners.length} partner(s) seleccionado(s)` : ''})
+        </span>
+      </div>
+
+      {/* Stacked Bar Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in stagger-4">
-        {selectedPartners.length === 0 ? (
-          <>
-            <BarChartComponent
-              data={gmvByCategoryData}
-              title="Net GMV por Categoría"
-              color="#10b981"
-              useCustomColors
-            />
-            <BarChartComponent
-              data={gmvChartData}
-              title="Net GMV por Partner"
-              color="#10b981"
-              useCustomColors
-            />
-          </>
-        ) : (
-          <>
-            <BarChartComponent
-              data={gmvChartData}
-              title="Net GMV por Partner"
-              color="#10b981"
-              useCustomColors
-            />
-            <BarChartComponent
-              data={bookingsChartData}
-              title="Net Bookings por Partner"
-              color="#0ea5e9"
-              useCustomColors
-            />
-          </>
-        )}
+        <StackedBarChart
+          data={timeSeriesData?.data || []}
+          title="# Orders Gross, Net & Cancelled"
+          type="bookings"
+        />
+        <StackedBarChart
+          data={timeSeriesData?.data || []}
+          title="€ GMV Gross, Net & Cancelled"
+          type="gmv"
+        />
       </div>
 
       {/* Partners Table */}

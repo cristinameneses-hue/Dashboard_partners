@@ -50,6 +50,22 @@ export interface EcommerceResponse {
   totals: BaseMetrics;
 }
 
+// Time Series Types
+export interface TimeSeriesPoint {
+  period: string;
+  gross_bookings: number;
+  cancelled_bookings: number;
+  net_bookings: number;
+  gross_gmv: number;
+  cancelled_gmv: number;
+  net_gmv: number;
+}
+
+export interface TimeSeriesResponse {
+  group_by: string;
+  data: TimeSeriesPoint[];
+}
+
 // Shortage Metrics (global)
 export interface ShortageMetrics extends BaseMetrics {
   active_pharmacies: number;

@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from datetime import date
 from fastapi import APIRouter, Depends, Query
 from motor.motor_asyncio import AsyncIOMotorDatabase
@@ -11,6 +11,8 @@ from app.schemas.metrics import (
     PeriodFilter,
     EcommerceResponse,
     EcommerceMetrics,
+    TimeSeriesResponse,
+    TimeSeriesPoint,
 )
 
 router = APIRouter()
@@ -100,5 +102,54 @@ async def get_partner_metrics(
     )
     
     return await service.get_partner_metrics(partner, period)
+
+
+@router.get("/timeseries", response_model=TimeSeriesResponse)
+async def get_time_series(
+    period_type: PeriodType = Query(
+        PeriodType.THIS_YEAR,
+        description="Period type for filtering"
+    ),
+    start_date: Optional[date] = Query(
+        None,
+        description="Start date for custom period"
+    ),
+    end_date: Optional[date] = Query(
+        None,
+        description="End date for custom period"
+    ),
+    group_by: str = Query(
+        "month",
+        description="Group by: week, month, quarter, year"
+    ),
+    partners: Optional[str] = Query(
+        None,
+        description="Comma-separated list of partners to filter"
+    ),
+    service: EcommerceService = Depends(get_ecommerce_service)
+):
+    """
+    Get time series metrics for charts.
+    
+    Returns metrics grouped by time period (week, month, quarter, year).
+    Optionally filter by specific partners.
+    """
+    period = PeriodFilter(
+        period_type=period_type,
+        start_date=start_date,
+        end_date=end_date
+    )
+    
+    # Parse partners list
+    partners_list = None
+    if partners:
+        partners_list = [p.strip() for p in partners.split(",")]
+    
+    data = await service.get_time_series(period, group_by, partners_list)
+    
+    return TimeSeriesResponse(
+        group_by=group_by,
+        data=data
+    )
 
 

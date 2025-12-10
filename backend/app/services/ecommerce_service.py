@@ -1,4 +1,4 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.repositories.booking_repository import BookingRepository
@@ -8,6 +8,7 @@ from app.schemas.metrics import (
     EcommerceMetrics,
     EcommerceResponse,
     BaseMetrics,
+    TimeSeriesPoint,
 )
 from app.schemas.periods import get_period_dates
 from app.core.config import get_settings
@@ -205,5 +206,48 @@ class EcommerceService:
             pct_cancelled_bookings=round(pct_cancelled_bookings, 2),
             pct_cancelled_gmv=round(pct_cancelled_gmv, 2)
         )
+
+    async def get_time_series(
+        self,
+        period: PeriodFilter,
+        group_by: str = "month",
+        partners: Optional[List[str]] = None
+    ) -> List[TimeSeriesPoint]:
+        """Get time series metrics grouped by period."""
+        
+        start_date, end_date = get_period_dates(period)
+        
+        raw_data = await self._booking_repo.get_ecommerce_time_series(
+            start_date, end_date, group_by, partners
+        )
+        
+        result = []
+        for item in raw_data:
+            period_info = item.get("period", {})
+            
+            # Format period label
+            if group_by == "week":
+                label = f"S{period_info.get('week', 0)} {period_info.get('year', '')}"
+            elif group_by == "quarter":
+                label = f"Q{int(period_info.get('quarter', 0))} {period_info.get('year', '')}"
+            elif group_by == "year":
+                label = str(period_info.get('year', ''))
+            else:  # month
+                months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 
+                         'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+                month_idx = period_info.get('month', 1) - 1
+                label = f"{months[month_idx]} {str(period_info.get('year', ''))[-2:]}"
+            
+            result.append(TimeSeriesPoint(
+                period=label,
+                gross_bookings=item.get("gross_bookings", 0),
+                cancelled_bookings=item.get("cancelled_bookings", 0),
+                net_bookings=item.get("net_bookings", 0),
+                gross_gmv=round(item.get("gross_gmv", 0), 2),
+                cancelled_gmv=round(item.get("cancelled_gmv", 0), 2),
+                net_gmv=round(item.get("net_gmv", 0), 2)
+            ))
+        
+        return result
 
 
