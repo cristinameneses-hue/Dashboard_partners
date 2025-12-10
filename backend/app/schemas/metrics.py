@@ -39,6 +39,8 @@ class BaseMetrics(BaseModel):
     avg_gmv_per_pharmacy: float = 0.0
     pct_cancelled_bookings: float = 0.0
     pct_cancelled_gmv: float = 0.0
+    total_pharmacies: int = 0
+    pharmacies_with_orders: int = 0
 
 
 class EcommerceMetrics(BaseMetrics):

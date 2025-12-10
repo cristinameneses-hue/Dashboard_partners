@@ -31,6 +31,8 @@ export interface BaseMetrics {
   avg_gmv_per_pharmacy: number;
   pct_cancelled_bookings: number;
   pct_cancelled_gmv: number;
+  total_pharmacies: number;
+  pharmacies_with_orders: number;
 }
 
 // Ecommerce Metrics (per partner)

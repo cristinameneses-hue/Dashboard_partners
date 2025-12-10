@@ -124,7 +124,7 @@ class EcommerceService:
             start_date, end_date
         )
         
-        totals = self._calculate_totals(totals_raw)
+        totals = await self._calculate_totals(totals_raw)
         
         return EcommerceResponse(
             period=period,
@@ -157,7 +157,7 @@ class EcommerceService:
         
         return self._calculate_derived_metrics(raw_metrics, pharmacies_with_tag)
     
-    def _calculate_totals(self, raw: Dict[str, Any]) -> BaseMetrics:
+    async def _calculate_totals(self, raw: Dict[str, Any]) -> BaseMetrics:
         """Calculate total metrics across all partners."""
         
         gross_bookings = raw.get("gross_bookings", 0)
@@ -167,6 +167,9 @@ class EcommerceService:
         cancelled_gmv = raw.get("cancelled_gmv", 0.0)
         net_gmv = raw.get("net_gmv", 0.0)
         pharmacies_with_orders = raw.get("pharmacies_with_orders", 0)
+        
+        # Get total pharmacies
+        total_pharmacies = await self._booking_repo.get_total_pharmacies()
         
         pct_cancelled_bookings = (
             (cancelled_bookings / gross_bookings * 100) 
@@ -204,7 +207,9 @@ class EcommerceService:
             avg_orders_per_pharmacy=round(avg_orders_per_pharmacy, 2),
             avg_gmv_per_pharmacy=round(avg_gmv_per_pharmacy, 2),
             pct_cancelled_bookings=round(pct_cancelled_bookings, 2),
-            pct_cancelled_gmv=round(pct_cancelled_gmv, 2)
+            pct_cancelled_gmv=round(pct_cancelled_gmv, 2),
+            total_pharmacies=total_pharmacies,
+            pharmacies_with_orders=pharmacies_with_orders
         )
 
     async def get_time_series(

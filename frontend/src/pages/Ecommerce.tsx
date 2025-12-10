@@ -321,7 +321,7 @@ export default function Ecommerce() {
 
       {/* KPI Summary */}
       {totals && (
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 animate-fade-in stagger-2">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-9 gap-4 animate-fade-in stagger-2">
           <MetricCard
             title="Gross Bookings"
             value={formatNumber(totals.gross_bookings)}
@@ -356,6 +356,16 @@ export default function Ecommerce() {
             title="% Cancel GMV"
             value={`${totals.pct_cancelled_gmv.toFixed(1)}%`}
             color="red"
+          />
+          <MetricCard
+            title="# Farmacias"
+            value={formatNumber(totals.total_pharmacies)}
+            color="cyan"
+          />
+          <MetricCard
+            title="# Fcias. ≥1 ped."
+            value={formatNumber(totals.pharmacies_with_orders)}
+            color="teal"
           />
         </div>
       )}

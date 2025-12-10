@@ -2,7 +2,7 @@ interface MetricCardProps {
   title: string;
   value: string | number;
   subtitle?: string;
-  color?: 'blue' | 'green' | 'amber' | 'purple' | 'red' | 'cyan';
+  color?: 'blue' | 'green' | 'amber' | 'purple' | 'red' | 'cyan' | 'teal';
   size?: 'sm' | 'md' | 'lg';
 }
 
@@ -13,6 +13,7 @@ const colorClasses = {
   purple: 'bg-purple-50 border-purple-200',
   red: 'bg-red-50 border-red-200',
   cyan: 'bg-cyan-50 border-cyan-200',
+  teal: 'bg-teal-50 border-teal-200',
 };
 
 const textColors = {
@@ -22,6 +23,7 @@ const textColors = {
   purple: 'text-purple-700',
   red: 'text-red-700',
   cyan: 'text-cyan-700',
+  teal: 'text-teal-700',
 };
 
 const iconColors = {
@@ -31,6 +33,7 @@ const iconColors = {
   purple: 'bg-purple-100',
   red: 'bg-red-100',
   cyan: 'bg-cyan-100',
+  teal: 'bg-teal-100',
 };
 
 const sizeClasses = {
