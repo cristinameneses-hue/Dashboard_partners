@@ -212,10 +212,13 @@ class EcommerceService:
         period: PeriodFilter,
         group_by: str = "month",
         partners: Optional[List[str]] = None
-    ) -> List[TimeSeriesPoint]:
+    ) -> Dict[str, Any]:
         """Get time series metrics grouped by period."""
         
         start_date, end_date = get_period_dates(period)
+        
+        # Get total pharmacies (all pharmacies that have ever received orders)
+        total_pharmacies = await self._booking_repo.get_total_pharmacies()
         
         raw_data = await self._booking_repo.get_ecommerce_time_series(
             start_date, end_date, group_by, partners
@@ -238,6 +241,9 @@ class EcommerceService:
                 month_idx = period_info.get('month', 1) - 1
                 label = f"{months[month_idx]} {str(period_info.get('year', ''))[-2:]}"
             
+            pharmacies_with_orders = item.get("pharmacies_with_orders", 0)
+            pct_active = (pharmacies_with_orders / total_pharmacies * 100) if total_pharmacies > 0 else 0
+            
             result.append(TimeSeriesPoint(
                 period=label,
                 gross_bookings=item.get("gross_bookings", 0),
@@ -246,12 +252,17 @@ class EcommerceService:
                 gross_gmv=round(item.get("gross_gmv", 0), 2),
                 cancelled_gmv=round(item.get("cancelled_gmv", 0), 2),
                 net_gmv=round(item.get("net_gmv", 0), 2),
-                pharmacies_with_orders=item.get("pharmacies_with_orders", 0),
+                pharmacies_with_orders=pharmacies_with_orders,
+                total_pharmacies=total_pharmacies,
+                pct_pharmacies_active=round(pct_active, 1),
                 average_ticket=round(item.get("average_ticket", 0), 2),
                 avg_orders_per_pharmacy=round(item.get("avg_orders_per_pharmacy", 0), 2),
                 avg_gmv_per_pharmacy=round(item.get("avg_gmv_per_pharmacy", 0), 2)
             ))
         
-        return result
+        return {
+            "data": result,
+            "total_pharmacies": total_pharmacies
+        }
 
 

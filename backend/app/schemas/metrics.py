@@ -83,6 +83,8 @@ class TimeSeriesPoint(BaseModel):
     cancelled_gmv: float = 0.0
     net_gmv: float = 0.0
     pharmacies_with_orders: int = 0
+    total_pharmacies: int = 0
+    pct_pharmacies_active: float = 0.0
     average_ticket: float = 0.0
     avg_orders_per_pharmacy: float = 0.0
     avg_gmv_per_pharmacy: float = 0.0
@@ -92,6 +94,7 @@ class TimeSeriesResponse(BaseModel):
     """Response for time series data."""
     group_by: str  # week, month, quarter, year
     data: List[TimeSeriesPoint]
+    total_pharmacies: int = 0
 
 
 class PartnerSummary(BaseModel):

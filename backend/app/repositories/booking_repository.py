@@ -463,4 +463,34 @@ class BookingRepository:
             "pharmacies_with_orders": 0
         }
 
+    async def get_total_pharmacies(self) -> int:
+        """
+        Get total unique pharmacies that have ever received an ecommerce order.
+        This represents the total pharmacy base for percentage calculations.
+        """
+        pipeline = [
+            {
+                "$match": {
+                    "thirdUser.user": {"$exists": True},
+                    "origin": {"$exists": False},
+                    "target": {"$exists": True}
+                }
+            },
+            {
+                "$group": {
+                    "_id": "$target"
+                }
+            },
+            {
+                "$count": "total"
+            }
+        ]
+        
+        cursor = self._collection.aggregate(pipeline)
+        results = await cursor.to_list(length=1)
+        
+        if results:
+            return results[0].get("total", 0)
+        return 0
+
 

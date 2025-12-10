@@ -8,19 +8,20 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  Cell,
+  LabelList,
 } from 'recharts';
 
 interface DataPoint {
   period: string;
   pharmacies_with_orders: number;
-  total_pharmacies?: number;
-  pct_active?: number;
+  total_pharmacies: number;
+  pct_pharmacies_active: number;
 }
 
 interface PharmacyComboChartProps {
   data: DataPoint[];
   title: string;
-  totalPharmacies?: number; // If provided, shows as constant line
 }
 
 // Format numbers with thousands separator
@@ -39,7 +40,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         <p className="font-semibold text-gray-800 mb-2">{label}</p>
         <div className="space-y-1 text-sm">
           {payload.map((entry: any, index: number) => {
-            const isPercentage = entry.dataKey === 'pct_active';
+            const isPercentage = entry.dataKey === 'pct_pharmacies_active';
             const value = isPercentage 
               ? `${entry.value?.toFixed(1)}%` 
               : formatNumber(entry.value || 0);
@@ -58,20 +59,28 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
+// Custom label renderer for percentage line
+const renderPercentLabel = (props: any) => {
+  const { x, y, value } = props;
+  if (value === undefined || value === null) return null;
+  return (
+    <text
+      x={x}
+      y={y - 10}
+      fill="#374151"
+      textAnchor="middle"
+      fontSize={10}
+      fontWeight={600}
+    >
+      {value.toFixed(1)}%
+    </text>
+  );
+};
+
 export default function PharmacyComboChart({ 
   data, 
-  title,
-  totalPharmacies
+  title
 }: PharmacyComboChartProps) {
-  // If totalPharmacies is provided, calculate percentage for each point
-  const chartData = data.map(point => ({
-    ...point,
-    total_pharmacies: totalPharmacies || point.total_pharmacies || 0,
-    pct_active: totalPharmacies && totalPharmacies > 0 
-      ? (point.pharmacies_with_orders / totalPharmacies) * 100
-      : point.pct_active || 0
-  }));
-
   return (
     <div className="card">
       <div className="card-header bg-gray-50">
@@ -80,8 +89,10 @@ export default function PharmacyComboChart({
       <div className="card-body">
         <ResponsiveContainer width="100%" height={320}>
           <ComposedChart
-            data={chartData}
-            margin={{ top: 25, right: 60, left: 20, bottom: 5 }}
+            data={data}
+            margin={{ top: 30, right: 60, left: 20, bottom: 5 }}
+            barGap={2}
+            barCategoryGap="20%"
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
             <XAxis 
@@ -107,36 +118,51 @@ export default function PharmacyComboChart({
             <Legend wrapperStyle={{ paddingTop: 10 }} />
             
             {/* Total pharmacies bar (dark green) */}
-            {totalPharmacies && (
-              <Bar
-                yAxisId="left"
-                dataKey="total_pharmacies"
-                name="# Total Farmacias"
+            <Bar
+              yAxisId="left"
+              dataKey="total_pharmacies"
+              name="# Total Farmacias"
+              fill="#166534"
+              radius={[4, 4, 0, 0]}
+              maxBarSize={35}
+            >
+              <LabelList 
+                dataKey="total_pharmacies" 
+                position="top" 
                 fill="#166534"
-                radius={[4, 4, 0, 0]}
-                barSize={30}
+                fontSize={10}
+                formatter={(value: number) => formatNumber(value)}
               />
-            )}
+            </Bar>
             
             {/* Pharmacies with orders bar (light green) */}
             <Bar
               yAxisId="left"
               dataKey="pharmacies_with_orders"
-              name="# Farmacias con pedidos"
+              name="# Fcias. ≥1 pedido"
               fill="#4ade80"
               radius={[4, 4, 0, 0]}
-              barSize={totalPharmacies ? 30 : 40}
-            />
+              maxBarSize={35}
+            >
+              <LabelList 
+                dataKey="pharmacies_with_orders" 
+                position="top" 
+                fill="#22c55e"
+                fontSize={10}
+                formatter={(value: number) => formatNumber(value)}
+              />
+            </Bar>
             
             {/* Percentage line */}
             <Line
               yAxisId="right"
               type="monotone"
-              dataKey="pct_active"
-              name="% Farmacias activas"
+              dataKey="pct_pharmacies_active"
+              name="% Fcias. ≥1 pedido"
               stroke="#374151"
               strokeWidth={2}
               dot={{ fill: '#374151', strokeWidth: 2, r: 4 }}
+              label={renderPercentLabel}
             />
           </ComposedChart>
         </ResponsiveContainer>
@@ -144,4 +170,3 @@ export default function PharmacyComboChart({
     </div>
   );
 }
-

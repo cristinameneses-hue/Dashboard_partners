@@ -60,6 +60,8 @@ export interface TimeSeriesPoint {
   cancelled_gmv: number;
   net_gmv: number;
   pharmacies_with_orders: number;
+  total_pharmacies: number;
+  pct_pharmacies_active: number;
   average_ticket: number;
   avg_orders_per_pharmacy: number;
   avg_gmv_per_pharmacy: number;
@@ -68,6 +70,7 @@ export interface TimeSeriesPoint {
 export interface TimeSeriesResponse {
   group_by: string;
   data: TimeSeriesPoint[];
+  total_pharmacies: number;
 }
 
 // Shortage Metrics (global)

@@ -145,11 +145,12 @@ async def get_time_series(
     if partners:
         partners_list = [p.strip() for p in partners.split(",")]
     
-    data = await service.get_time_series(period, group_by, partners_list)
+    result = await service.get_time_series(period, group_by, partners_list)
     
     return TimeSeriesResponse(
         group_by=group_by,
-        data=data
+        data=result["data"],
+        total_pharmacies=result["total_pharmacies"]
     )
 
 
