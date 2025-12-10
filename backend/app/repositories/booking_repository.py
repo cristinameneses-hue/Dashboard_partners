@@ -308,11 +308,15 @@ class BookingRepository:
             "createdDate": {"$gte": start_date, "$lte": end_date}
         }
         
-        # Filter by partners if specified
+        # Filter by partners if specified - use $or with regex for case-insensitive matching
         if partners and len(partners) > 0:
-            match_stage["thirdUser.user"] = {
-                "$in": [{"$regex": f"^{p}$", "$options": "i"} for p in partners]
-            }
+            partner_conditions = [
+                {"thirdUser.user": {"$regex": f"^{p}$", "$options": "i"}} 
+                for p in partners
+            ]
+            match_stage["$or"] = partner_conditions
+            # Remove the simple thirdUser.user exists check since we're using $or
+            del match_stage["thirdUser.user"]
         
         pipeline = [
             {"$match": match_stage},
