@@ -265,7 +265,7 @@ export default function Ecommerce() {
       </div>
 
       {/* Filter Bar - Sticky */}
-      <div className="sticky top-[73px] z-50 -mx-8 px-8 py-3 bg-gray-50/95 backdrop-blur-sm border-b border-gray-200 shadow-sm">
+      <div className="sticky top-0 z-50 -mx-8 px-8 py-3 bg-gray-50/95 backdrop-blur-sm border-b border-gray-200 shadow-sm">
         <div className="card p-4" style={{ zIndex: 100 }}>
           <FilterBar
             periodType={periodType}

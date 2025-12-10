@@ -17,7 +17,7 @@ export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
 
   return (
-    <div className="min-h-screen flex bg-gray-50">
+    <div className="h-screen flex bg-gray-50 overflow-hidden">
       {/* Sidebar */}
       <aside className="w-64 fixed h-full sidebar shadow-xl">
         {/* Logo */}
@@ -96,7 +96,7 @@ export default function Layout({ children }: LayoutProps) {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 ml-64">
+      <main className="flex-1 ml-64 h-screen overflow-y-auto">
         {/* Top Bar */}
         <header className="bg-white shadow-sm border-b border-gray-200 px-8 py-4 sticky top-0 z-40">
           <div className="flex items-center justify-between">
