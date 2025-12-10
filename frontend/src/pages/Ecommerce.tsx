@@ -10,17 +10,28 @@ import { PARTNER_CATEGORIES, getCategoryByPartner } from '../types';
 
 const columnHelper = createColumnHelper<EcommerceMetrics>();
 
-// Format numbers with full representation (no abbreviations)
+// Format numbers with thousands separator (punto de miles)
 function formatNumber(num: number): string {
-  return num.toLocaleString('es-ES');
+  return Math.round(num).toLocaleString('es-ES');
 }
 
+// Format currency with decimals (for average ticket, etc.)
 function formatCurrency(num: number): string {
   return num.toLocaleString('es-ES', { 
     style: 'currency', 
     currency: 'EUR',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
+  });
+}
+
+// Format GMV without decimals (rounded)
+function formatGMV(num: number): string {
+  return Math.round(num).toLocaleString('es-ES', { 
+    style: 'currency', 
+    currency: 'EUR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
   });
 }
 
@@ -156,7 +167,7 @@ export default function Ecommerce() {
       header: 'Net GMV',
       cell: (info) => (
         <span className="text-emerald-400 font-medium">
-          {formatCurrency(info.getValue())}
+          {formatGMV(info.getValue())}
         </span>
       ),
     }),
@@ -165,7 +176,7 @@ export default function Ecommerce() {
       cell: (info) => formatCurrency(info.getValue()),
     }),
     columnHelper.accessor('pct_cancelled_bookings', {
-      header: '% Cancelled',
+      header: '% Cancel Ops',
       cell: (info) => (
         <span className={info.getValue() > 10 ? 'text-red-400' : 'text-slate-300'}>
           {info.getValue().toFixed(1)}%
@@ -308,7 +319,7 @@ export default function Ecommerce() {
               </div>
               <div className="space-y-1">
                 <p className="text-lg font-bold" style={{ color: cat.color }}>
-                  {formatCurrency(cat.net_gmv)}
+                  {formatGMV(cat.net_gmv)}
                 </p>
                 <p className="text-xs text-gray-500">
                   {formatNumber(cat.net_bookings)} bookings
@@ -326,7 +337,7 @@ export default function Ecommerce() {
 
       {/* KPI Summary */}
       {totals && (
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 animate-fade-in stagger-2">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 animate-fade-in stagger-2">
           <MetricCard
             title="Gross Bookings"
             value={formatNumber(totals.gross_bookings)}
@@ -339,12 +350,12 @@ export default function Ecommerce() {
           />
           <MetricCard
             title="Gross GMV"
-            value={formatCurrency(totals.gross_gmv)}
+            value={formatGMV(totals.gross_gmv)}
             color="amber"
           />
           <MetricCard
             title="Net GMV"
-            value={formatCurrency(totals.net_gmv)}
+            value={formatGMV(totals.net_gmv)}
             color="green"
           />
           <MetricCard
@@ -353,8 +364,13 @@ export default function Ecommerce() {
             color="purple"
           />
           <MetricCard
-            title="% Cancelled"
+            title="% Cancel Ops"
             value={`${totals.pct_cancelled_bookings.toFixed(1)}%`}
+            color="red"
+          />
+          <MetricCard
+            title="% Cancel GMV"
+            value={`${totals.pct_cancelled_gmv.toFixed(1)}%`}
             color="red"
           />
         </div>
@@ -371,19 +387,19 @@ export default function Ecommerce() {
           />
           <MetricCard
             title="Cancelled GMV"
-            value={formatCurrency(totals.cancelled_gmv)}
+            value={formatGMV(totals.cancelled_gmv)}
             color="red"
             size="sm"
           />
           <MetricCard
             title="Avg Orders/Pharmacy"
-            value={totals.avg_orders_per_pharmacy.toFixed(1)}
+            value={formatNumber(totals.avg_orders_per_pharmacy)}
             color="cyan"
             size="sm"
           />
           <MetricCard
             title="Avg GMV/Pharmacy"
-            value={formatCurrency(totals.avg_gmv_per_pharmacy)}
+            value={formatGMV(totals.avg_gmv_per_pharmacy)}
             color="cyan"
             size="sm"
           />

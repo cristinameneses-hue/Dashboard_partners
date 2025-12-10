@@ -4,17 +4,28 @@ import MetricCard from '../components/MetricCard';
 import { useShortageMetrics } from '../hooks/useShortage';
 import type { PeriodType } from '../types';
 
-// Format numbers with full representation (no abbreviations)
+// Format numbers with thousands separator (punto de miles)
 function formatNumber(num: number): string {
-  return num.toLocaleString('es-ES');
+  return Math.round(num).toLocaleString('es-ES');
 }
 
+// Format currency with decimals (for average ticket, etc.)
 function formatCurrency(num: number): string {
   return num.toLocaleString('es-ES', { 
     style: 'currency', 
     currency: 'EUR',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
+  });
+}
+
+// Format GMV without decimals (rounded)
+function formatGMV(num: number): string {
+  return Math.round(num).toLocaleString('es-ES', { 
+    style: 'currency', 
+    currency: 'EUR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
   });
 }
 
@@ -123,13 +134,13 @@ export default function Shortage() {
                 color="green"
               />
               <MetricCard
-                title="% Cancelled"
+                title="% Cancel Ops"
                 value={`${metrics.pct_cancelled_bookings.toFixed(1)}%`}
                 color="red"
               />
               <MetricCard
                 title="Avg Orders/Pharm"
-                value={metrics.avg_orders_per_pharmacy.toFixed(1)}
+                value={formatNumber(metrics.avg_orders_per_pharmacy)}
                 color="cyan"
               />
               <MetricCard
@@ -146,28 +157,28 @@ export default function Shortage() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               <MetricCard
                 title="Gross GMV"
-                value={formatCurrency(metrics.gross_gmv)}
+                value={formatGMV(metrics.gross_gmv)}
                 color="amber"
               />
               <MetricCard
                 title="Cancelled GMV"
-                value={formatCurrency(metrics.cancelled_gmv)}
+                value={formatGMV(metrics.cancelled_gmv)}
                 color="red"
               />
               <MetricCard
                 title="Net GMV"
-                value={formatCurrency(metrics.net_gmv)}
+                value={formatGMV(metrics.net_gmv)}
                 color="green"
                 size="lg"
               />
               <MetricCard
-                title="% Cancelled GMV"
+                title="% Cancel GMV"
                 value={`${metrics.pct_cancelled_gmv.toFixed(1)}%`}
                 color="red"
               />
               <MetricCard
                 title="Avg GMV/Pharm"
-                value={formatCurrency(metrics.avg_gmv_per_pharmacy)}
+                value={formatGMV(metrics.avg_gmv_per_pharmacy)}
                 color="cyan"
               />
             </div>
@@ -243,7 +254,7 @@ export default function Shortage() {
               <div>
                 <p className="text-sm text-gray-500">Valor Total</p>
                 <p className="text-xl font-bold text-green-600">
-                  {formatCurrency(metrics.net_gmv)}
+                  {formatGMV(metrics.net_gmv)}
                 </p>
               </div>
               <div>
