@@ -20,22 +20,24 @@ function formatNumber(num: number): string {
 
 // Format currency with decimals (for average ticket, etc.)
 function formatCurrency(num: number): string {
-  return num.toLocaleString('es-ES', { 
-    style: 'currency', 
+  return new Intl.NumberFormat('es-ES', {
+    style: 'currency',
     currency: 'EUR',
     minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  });
+    maximumFractionDigits: 2,
+    useGrouping: true
+  }).format(num);
 }
 
 // Format GMV without decimals (rounded)
 function formatGMV(num: number): string {
-  return Math.round(num).toLocaleString('es-ES', { 
-    style: 'currency', 
+  return new Intl.NumberFormat('es-ES', {
+    style: 'currency',
     currency: 'EUR',
     minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  });
+    maximumFractionDigits: 0,
+    useGrouping: true
+  }).format(Math.round(num));
 }
 
 // Category metrics aggregation
