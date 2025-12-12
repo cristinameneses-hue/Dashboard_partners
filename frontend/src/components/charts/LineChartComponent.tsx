@@ -21,6 +21,8 @@ interface LineChartComponentProps {
   color?: string;
   isCurrency?: boolean;
   suffix?: string;
+  height?: number;
+  showHeader?: boolean;
 }
 
 // Format numbers with thousands separator
@@ -89,15 +91,19 @@ export default function LineChartComponent({
   dataKey, 
   color = '#22c55e',
   isCurrency = false,
-  suffix = ''
+  suffix = '',
+  height = 280,
+  showHeader = true
 }: LineChartComponentProps) {
   return (
-    <div className="card">
-      <div className="card-header bg-gray-50">
-        <h3 className="font-semibold text-gray-800">{title}</h3>
-      </div>
-      <div className="card-body">
-        <ResponsiveContainer width="100%" height={280}>
+    <div className="card h-full flex flex-col">
+      {showHeader && (
+        <div className="card-header bg-gray-50">
+          <h3 className="font-semibold text-gray-800">{title}</h3>
+        </div>
+      )}
+      <div className="card-body flex-1">
+        <ResponsiveContainer width="100%" height={height}>
           <LineChart
             data={data}
             margin={{ top: 25, right: 30, left: 20, bottom: 5 }}

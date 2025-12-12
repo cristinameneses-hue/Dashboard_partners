@@ -22,6 +22,8 @@ interface DataPoint {
 interface PharmacyComboChartProps {
   data: DataPoint[];
   title: string;
+  height?: number;
+  showHeader?: boolean;
 }
 
 // Format numbers with thousands separator
@@ -79,15 +81,19 @@ const renderPercentLabel = (props: any) => {
 
 export default function PharmacyComboChart({ 
   data, 
-  title
+  title,
+  height = 320,
+  showHeader = true
 }: PharmacyComboChartProps) {
   return (
-    <div className="card">
-      <div className="card-header bg-gray-50">
-        <h3 className="font-semibold text-gray-800">{title}</h3>
-      </div>
-      <div className="card-body">
-        <ResponsiveContainer width="100%" height={320}>
+    <div className="card h-full flex flex-col">
+      {showHeader && (
+        <div className="card-header bg-gray-50">
+          <h3 className="font-semibold text-gray-800">{title}</h3>
+        </div>
+      )}
+      <div className="card-body flex-1">
+        <ResponsiveContainer width="100%" height={height}>
           <ComposedChart
             data={data}
             margin={{ top: 30, right: 60, left: 20, bottom: 5 }}

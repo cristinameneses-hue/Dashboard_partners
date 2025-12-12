@@ -7,9 +7,10 @@ import StackedBarChart from '../components/charts/StackedBarChart';
 import LineChartComponent from '../components/charts/LineChartComponent';
 import PharmacyComboChart from '../components/charts/PharmacyComboChart';
 import TimeSeriesTable from '../components/charts/TimeSeriesTable';
+import ExpandableChart from '../components/charts/ExpandableChart';
 import { useEcommerceMetrics, useTimeSeries, ChartGroupBy } from '../hooks/useEcommerce';
 import type { PeriodType, EcommerceMetrics } from '../types';
-import { PARTNER_CATEGORIES, getCategoryByPartner } from '../types';
+import { PARTNER_CATEGORIES } from '../types';
 
 const columnHelper = createColumnHelper<EcommerceMetrics>();
 
@@ -180,20 +181,11 @@ export default function Ecommerce() {
   const columns = useMemo(() => [
     columnHelper.accessor('partner', {
       header: 'Partner',
-      cell: (info) => {
-        const category = getCategoryByPartner(info.getValue());
-        return (
-          <div className="flex items-center gap-2">
-            <div 
-              className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: category?.color || '#64748b' }}
-            />
-            <span className="font-medium text-white capitalize">
-              {info.getValue().replace('-', ' ')}
-            </span>
-          </div>
-        );
-      },
+      cell: (info) => (
+        <span className="font-medium text-gray-800 capitalize">
+          {info.getValue().replace('-', ' ')}
+        </span>
+      ),
     }),
     columnHelper.accessor('net_bookings', {
       header: 'Net Bookings',
@@ -436,48 +428,60 @@ export default function Ecommerce() {
 
       {/* Stacked Bar Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in stagger-4">
-        <StackedBarChart
-          data={timeSeriesData?.data || []}
-          title="# Orders Gross, Net & Cancelled"
-          type="bookings"
-        />
-        <StackedBarChart
-          data={timeSeriesData?.data || []}
-          title="€ GMV Gross, Net & Cancelled"
-          type="gmv"
-        />
+        <ExpandableChart title="# Orders Gross, Net & Cancelled" dataPoints={timeSeriesData?.data?.length || 12}>
+          <StackedBarChart
+            data={timeSeriesData?.data || []}
+            title="# Orders Gross, Net & Cancelled"
+            type="bookings"
+          />
+        </ExpandableChart>
+        <ExpandableChart title="€ GMV Gross, Net & Cancelled" dataPoints={timeSeriesData?.data?.length || 12}>
+          <StackedBarChart
+            data={timeSeriesData?.data || []}
+            title="€ GMV Gross, Net & Cancelled"
+            type="gmv"
+          />
+        </ExpandableChart>
       </div>
 
       {/* Line Charts - Averages */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in stagger-4">
-        <LineChartComponent
-          data={timeSeriesData?.data || []}
-          title="Avg. orders per pharmacy"
-          dataKey="avg_orders_per_pharmacy"
-          color="#22c55e"
-        />
-        <LineChartComponent
-          data={timeSeriesData?.data || []}
-          title="Avg. GMV per pharmacy"
-          dataKey="avg_gmv_per_pharmacy"
-          color="#22c55e"
-          isCurrency
-        />
+        <ExpandableChart title="Avg. orders per pharmacy" dataPoints={timeSeriesData?.data?.length || 12}>
+          <LineChartComponent
+            data={timeSeriesData?.data || []}
+            title="Avg. orders per pharmacy"
+            dataKey="avg_orders_per_pharmacy"
+            color="#22c55e"
+          />
+        </ExpandableChart>
+        <ExpandableChart title="Avg. GMV per pharmacy" dataPoints={timeSeriesData?.data?.length || 12}>
+          <LineChartComponent
+            data={timeSeriesData?.data || []}
+            title="Avg. GMV per pharmacy"
+            dataKey="avg_gmv_per_pharmacy"
+            color="#22c55e"
+            isCurrency
+          />
+        </ExpandableChart>
       </div>
 
       {/* More Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in stagger-4">
-        <LineChartComponent
-          data={timeSeriesData?.data || []}
-          title="Avg. order value (Ticket medio)"
-          dataKey="average_ticket"
-          color="#22c55e"
-          isCurrency
-        />
-        <PharmacyComboChart
-          data={timeSeriesData?.data || []}
-          title="Pharmacies with orders"
-        />
+        <ExpandableChart title="Avg. order value (Ticket medio)" dataPoints={timeSeriesData?.data?.length || 12}>
+          <LineChartComponent
+            data={timeSeriesData?.data || []}
+            title="Avg. order value (Ticket medio)"
+            dataKey="average_ticket"
+            color="#22c55e"
+            isCurrency
+          />
+        </ExpandableChart>
+        <ExpandableChart title="Pharmacies with orders" dataPoints={timeSeriesData?.data?.length || 12}>
+          <PharmacyComboChart
+            data={timeSeriesData?.data || []}
+            title="Pharmacies with orders"
+          />
+        </ExpandableChart>
       </div>
 
       {/* Data Tables Section */}

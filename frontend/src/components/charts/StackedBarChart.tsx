@@ -25,6 +25,8 @@ interface StackedBarChartProps {
   data: TimeSeriesPoint[];
   title: string;
   type: 'bookings' | 'gmv';
+  height?: number;
+  showHeader?: boolean;
 }
 
 // Format numbers with thousands separator
@@ -111,18 +113,26 @@ const TotalLabel = (props: any) => {
   );
 };
 
-export default function StackedBarChart({ data, title, type }: StackedBarChartProps) {
+export default function StackedBarChart({ 
+  data, 
+  title, 
+  type,
+  height = 350,
+  showHeader = true
+}: StackedBarChartProps) {
   const netKey = type === 'gmv' ? 'net_gmv' : 'net_bookings';
   const cancelledKey = type === 'gmv' ? 'cancelled_gmv' : 'cancelled_bookings';
   const formatter = type === 'gmv' ? formatGMV : formatNumber;
   
   return (
-    <div className="card">
-      <div className="card-header bg-gray-50">
-        <h3 className="font-semibold text-gray-800">{title}</h3>
-      </div>
-      <div className="card-body">
-        <ResponsiveContainer width="100%" height={350}>
+    <div className="card h-full flex flex-col">
+      {showHeader && (
+        <div className="card-header bg-gray-50">
+          <h3 className="font-semibold text-gray-800">{title}</h3>
+        </div>
+      )}
+      <div className="card-body flex-1">
+        <ResponsiveContainer width="100%" height={height}>
           <BarChart
             data={data}
             margin={{ top: 30, right: 30, left: 20, bottom: 5 }}
