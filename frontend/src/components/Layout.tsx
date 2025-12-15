@@ -11,6 +11,7 @@ interface LayoutProps {
 const navItems = [
   { path: '/', label: 'Ecommerce', icon: '📊', description: 'Métricas de partners' },
   { path: '/shortage', label: 'Shortage', icon: '🔄', description: 'Transferencias internas' },
+  { path: '/luda-mind', label: 'Luda Mind', icon: '🧠', description: 'Consultas IA' },
 ];
 
 export default function Layout({ children }: LayoutProps) {
@@ -38,7 +39,7 @@ export default function Layout({ children }: LayoutProps) {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`sidebar-link ${isActive ? 'active' : ''}`}
+                className={`sidebar-link ${isActive ? 'active' : ''} ${item.path === '/luda-mind' && isActive ? 'luda-mind-active' : ''}`}
               >
                 <span className="text-xl">{item.icon}</span>
                 <div>
@@ -102,7 +103,7 @@ export default function Layout({ children }: LayoutProps) {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold text-gray-800">
-                {location.pathname === '/' ? 'Ecommerce Dashboard' : 'Shortage Dashboard'}
+                {location.pathname === '/' ? 'Ecommerce Dashboard' : location.pathname === '/luda-mind' ? 'Luda Mind' : 'Shortage Dashboard'}
               </h2>
               <p className="text-sm text-gray-500">
                 Panel de control y métricas

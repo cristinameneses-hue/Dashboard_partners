@@ -12,9 +12,22 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
+      // Backend FastAPI (Dashboard) - puerto 8000
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
+      },
+      // Backend Flask (Luda Mind) health check - puerto 5000
+      '/luda-health': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/luda-health/, '/health'),
+      },
+      // Backend Flask (Luda Mind) API - puerto 5000
+      '/luda-api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/luda-api/, '/api'),
       },
     },
   },
