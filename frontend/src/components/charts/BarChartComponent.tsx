@@ -22,7 +22,7 @@ interface BarChartComponentProps {
   useCustomColors?: boolean;
 }
 
-const COLORS = ['#0ea5e9', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#06b6d4'];
+const COLORS = ['#00A651', '#F5A623', '#0ea5e9', '#8b5cf6', '#ec4899', '#06b6d4'];
 
 function formatValue(value: number): string {
   return value.toLocaleString('es-ES', {
@@ -46,46 +46,46 @@ export default function BarChartComponent({
   useCustomColors = false,
 }: BarChartComponentProps) {
   return (
-    <div className="card">
-      <div className="card-header">
-        <h3 className="font-semibold text-white">{title}</h3>
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+      <div className="px-6 py-4 border-b border-gray-100">
+        <h3 className="font-semibold text-gray-800">{title}</h3>
       </div>
-      <div className="card-body">
+      <div className="p-6">
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" vertical={false} />
               <XAxis
                 dataKey="name"
-                stroke="#64748b"
+                stroke="#9CA3AF"
                 fontSize={11}
                 tickLine={false}
                 axisLine={false}
-                tick={{ fill: '#94a3b8' }}
+                tick={{ fill: '#6B7280' }}
                 interval={0}
                 angle={-20}
                 textAnchor="end"
                 height={60}
               />
               <YAxis
-                stroke="#64748b"
+                stroke="#9CA3AF"
                 fontSize={11}
                 tickLine={false}
                 axisLine={false}
-                tick={{ fill: '#94a3b8' }}
+                tick={{ fill: '#6B7280' }}
                 tickFormatter={formatAxisValue}
                 width={60}
               />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: '#1e293b',
-                  border: '1px solid rgba(255,255,255,0.1)',
+                  backgroundColor: '#FFFFFF',
+                  border: '1px solid #E5E7EB',
                   borderRadius: '12px',
-                  color: '#f8fafc',
-                  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+                  color: '#1F2937',
+                  boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
                 }}
                 formatter={(value: number) => [formatValue(value), 'Valor']}
-                cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                cursor={{ fill: 'rgba(0, 166, 81, 0.05)' }}
               />
               <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={50}>
                 {data.map((entry, index) => (

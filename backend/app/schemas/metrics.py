@@ -39,6 +39,8 @@ class BaseMetrics(BaseModel):
     avg_gmv_per_pharmacy: float = 0.0
     pct_cancelled_bookings: float = 0.0
     pct_cancelled_gmv: float = 0.0
+    total_pharmacies: int = 0
+    pharmacies_with_orders: int = 0
 
 
 class EcommerceMetrics(BaseMetrics):
@@ -71,6 +73,30 @@ class ShortageResponse(BaseModel):
     period_start: datetime
     period_end: datetime
     metrics: ShortageMetrics
+
+
+class TimeSeriesPoint(BaseModel):
+    """Time series data point for charts."""
+    period: str  # Label like "Ene 25", "S12 2025", "Q1 2025", "2025"
+    gross_bookings: int = 0
+    cancelled_bookings: int = 0
+    net_bookings: int = 0
+    gross_gmv: float = 0.0
+    cancelled_gmv: float = 0.0
+    net_gmv: float = 0.0
+    pharmacies_with_orders: int = 0
+    total_pharmacies: int = 0
+    pct_pharmacies_active: float = 0.0
+    average_ticket: float = 0.0
+    avg_orders_per_pharmacy: float = 0.0
+    avg_gmv_per_pharmacy: float = 0.0
+
+
+class TimeSeriesResponse(BaseModel):
+    """Response for time series data."""
+    group_by: str  # week, month, quarter, year
+    data: List[TimeSeriesPoint]
+    total_pharmacies: int = 0
 
 
 class PartnerSummary(BaseModel):

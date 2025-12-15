@@ -47,3 +47,10 @@ playwright/.cache/
 *.bak
 *.tmp
 
+# Luda Mind specific
+ludamind/node_modules/
+ludamind/.env
+ludamind/.env.chatgpt
+ludamind/test-results/
+ludamind/dist/
+

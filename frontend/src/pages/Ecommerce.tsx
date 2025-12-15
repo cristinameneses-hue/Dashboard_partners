@@ -3,25 +3,45 @@ import { createColumnHelper } from '@tanstack/react-table';
 import FilterBar from '../components/FilterBar';
 import MetricCard from '../components/MetricCard';
 import DataTable from '../components/DataTable';
-import BarChartComponent from '../components/charts/BarChartComponent';
-import { useEcommerceMetrics } from '../hooks/useEcommerce';
+import StackedBarChart from '../components/charts/StackedBarChart';
+import LineChartComponent from '../components/charts/LineChartComponent';
+import PharmacyComboChart from '../components/charts/PharmacyComboChart';
+import TimeSeriesTable from '../components/charts/TimeSeriesTable';
+import ExpandableChart from '../components/charts/ExpandableChart';
+import { useEcommerceMetrics, useTimeSeries, ChartGroupBy } from '../hooks/useEcommerce';
 import type { PeriodType, EcommerceMetrics } from '../types';
-import { PARTNER_CATEGORIES, getCategoryByPartner } from '../types';
+import { PARTNER_CATEGORIES } from '../types';
 
 const columnHelper = createColumnHelper<EcommerceMetrics>();
 
-// Format numbers with full representation (no abbreviations)
+// Format numbers with thousands separator (punto de miles)
 function formatNumber(num: number): string {
-  return num.toLocaleString('es-ES');
+  return new Intl.NumberFormat('es-ES', {
+    useGrouping: true,
+    maximumFractionDigits: 0
+  }).format(Math.round(num));
 }
 
+// Format currency with decimals (for average ticket, etc.)
 function formatCurrency(num: number): string {
-  return num.toLocaleString('es-ES', { 
-    style: 'currency', 
+  return new Intl.NumberFormat('es-ES', {
+    style: 'currency',
     currency: 'EUR',
     minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  });
+    maximumFractionDigits: 2,
+    useGrouping: true
+  }).format(num);
+}
+
+// Format GMV without decimals (rounded)
+function formatGMV(num: number): string {
+  return new Intl.NumberFormat('es-ES', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+    useGrouping: true
+  }).format(Math.round(num));
 }
 
 // Category metrics aggregation
@@ -35,16 +55,44 @@ interface CategoryMetrics {
   partners_count: number;
 }
 
+const CHART_GROUP_OPTIONS: { value: ChartGroupBy; label: string }[] = [
+  { value: 'week', label: 'Semana' },
+  { value: 'month', label: 'Mes' },
+  { value: 'quarter', label: 'Trimestre' },
+  { value: 'year', label: 'Año' },
+];
+
 export default function Ecommerce() {
   const [periodType, setPeriodType] = useState<PeriodType>('this_month');
   const [customStart, setCustomStart] = useState<string>();
   const [customEnd, setCustomEnd] = useState<string>();
   const [selectedPartners, setSelectedPartners] = useState<string[]>([]);
+  const [chartGroupBy, setChartGroupBy] = useState<ChartGroupBy>('month');
+  const [tableGroupBy, setTableGroupBy] = useState<ChartGroupBy>('month');
 
   const { data, loading, error } = useEcommerceMetrics(
     periodType,
     customStart,
     customEnd
+  );
+
+  // Time series for charts - use this_year by default for charts
+  const chartPeriodType = periodType === 'custom' ? 'custom' : 'this_year';
+  const { data: timeSeriesData } = useTimeSeries(
+    chartPeriodType,
+    chartGroupBy,
+    selectedPartners.length > 0 ? selectedPartners : undefined,
+    periodType === 'custom' ? customStart : undefined,
+    periodType === 'custom' ? customEnd : undefined
+  );
+
+  // Time series data for table (with its own groupBy)
+  const { data: tableTimeSeriesData } = useTimeSeries(
+    chartPeriodType,
+    tableGroupBy,
+    selectedPartners.length > 0 ? selectedPartners : undefined,
+    periodType === 'custom' ? customStart : undefined,
+    periodType === 'custom' ? customEnd : undefined
   );
 
   const handlePeriodChange = (
@@ -133,20 +181,11 @@ export default function Ecommerce() {
   const columns = useMemo(() => [
     columnHelper.accessor('partner', {
       header: 'Partner',
-      cell: (info) => {
-        const category = getCategoryByPartner(info.getValue());
-        return (
-          <div className="flex items-center gap-2">
-            <div 
-              className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: category?.color || '#64748b' }}
-            />
-            <span className="font-medium text-white capitalize">
-              {info.getValue().replace('-', ' ')}
-            </span>
-          </div>
-        );
-      },
+      cell: (info) => (
+        <span className="font-medium text-gray-800 capitalize">
+          {info.getValue().replace('-', ' ')}
+        </span>
+      ),
     }),
     columnHelper.accessor('net_bookings', {
       header: 'Net Bookings',
@@ -156,7 +195,7 @@ export default function Ecommerce() {
       header: 'Net GMV',
       cell: (info) => (
         <span className="text-emerald-400 font-medium">
-          {formatCurrency(info.getValue())}
+          {formatGMV(info.getValue())}
         </span>
       ),
     }),
@@ -165,7 +204,7 @@ export default function Ecommerce() {
       cell: (info) => formatCurrency(info.getValue()),
     }),
     columnHelper.accessor('pct_cancelled_bookings', {
-      header: '% Cancelled',
+      header: '% Cancel Ops',
       cell: (info) => (
         <span className={info.getValue() > 10 ? 'text-red-400' : 'text-slate-300'}>
           {info.getValue().toFixed(1)}%
@@ -185,55 +224,12 @@ export default function Ecommerce() {
     }),
   ], []);
 
-  // Prepare chart data by category
-  const gmvByCategoryData = useMemo(() => 
-    categoryMetrics
-      .sort((a, b) => b.net_gmv - a.net_gmv)
-      .map(cat => ({
-        name: cat.category,
-        value: cat.net_gmv,
-        fill: cat.color
-      })),
-    [categoryMetrics]
-  );
-
-  // Prepare chart data by partner
-  const gmvChartData = useMemo(() => 
-    filteredPartners
-      .sort((a, b) => b.net_gmv - a.net_gmv)
-      .slice(0, 10)
-      .map(p => {
-        const category = getCategoryByPartner(p.partner);
-        return {
-          name: p.partner.replace('-', ' '),
-          value: p.net_gmv,
-          fill: category?.color || '#64748b'
-        };
-      }),
-    [filteredPartners]
-  );
-
-  const bookingsChartData = useMemo(() =>
-    filteredPartners
-      .sort((a, b) => b.net_bookings - a.net_bookings)
-      .slice(0, 10)
-      .map(p => {
-        const category = getCategoryByPartner(p.partner);
-        return {
-          name: p.partner.replace('-', ' '),
-          value: p.net_bookings,
-          fill: category?.color || '#64748b'
-        };
-      }),
-    [filteredPartners]
-  );
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
-          <div className="text-xl text-slate-400">Cargando métricas...</div>
+          <div className="w-12 h-12 border-4 border-[#00A651] border-t-transparent rounded-full animate-spin"></div>
+          <div className="text-xl text-gray-500">Cargando métricas...</div>
         </div>
       </div>
     );
@@ -242,7 +238,7 @@ export default function Ecommerce() {
   if (error) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-xl text-red-400">{error}</div>
+        <div className="text-xl text-red-600">{error}</div>
       </div>
     );
   }
@@ -254,33 +250,35 @@ export default function Ecommerce() {
       {/* Header */}
       <div className="flex items-start justify-between animate-fade-in">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">
             Ecommerce Metrics
           </h1>
-          <p className="text-slate-400">
+          <p className="text-gray-500">
             Métricas de rendimiento por partner y categoría
           </p>
         </div>
         {data && (
-          <div className="text-right">
-            <p className="text-xs text-slate-500">Período</p>
-            <p className="text-sm text-slate-300">
+          <div className="text-right bg-white rounded-lg px-4 py-2 shadow-sm border border-gray-200">
+            <p className="text-xs text-gray-400">Período</p>
+            <p className="text-sm text-gray-700 font-medium">
               {new Date(data.period_start).toLocaleDateString('es-ES')} - {new Date(data.period_end).toLocaleDateString('es-ES')}
             </p>
           </div>
         )}
       </div>
 
-      {/* Filter Bar */}
-      <div className="card p-4 animate-fade-in stagger-1 relative" style={{ zIndex: 100 }}>
-        <FilterBar
-          periodType={periodType}
-          onPeriodChange={handlePeriodChange}
-          customStart={customStart}
-          customEnd={customEnd}
-          selectedPartners={selectedPartners}
-          onPartnersChange={setSelectedPartners}
-        />
+      {/* Filter Bar - Sticky */}
+      <div className="sticky top-0 z-50 -mx-8 px-8 py-3 bg-gray-50/95 backdrop-blur-sm border-b border-gray-200 shadow-sm">
+        <div className="card p-4" style={{ zIndex: 100 }}>
+          <FilterBar
+            periodType={periodType}
+            onPeriodChange={handlePeriodChange}
+            customStart={customStart}
+            customEnd={customEnd}
+            selectedPartners={selectedPartners}
+            onPartnersChange={setSelectedPartners}
+          />
+        </div>
       </div>
 
       {/* Category Summary Cards */}
@@ -289,7 +287,7 @@ export default function Ecommerce() {
           {categoryMetrics.map((cat) => (
             <div 
               key={cat.category}
-              className="card p-4 cursor-pointer hover:border-white/20 transition-all group"
+              className="bg-white rounded-xl p-4 cursor-pointer border border-gray-200 hover:border-green-300 hover:shadow-lg transition-all group"
               onClick={() => {
                 const categoryInfo = PARTNER_CATEGORIES.find(c => c.name === cat.category);
                 if (categoryInfo) {
@@ -302,20 +300,20 @@ export default function Ecommerce() {
                   className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: cat.color }}
                 />
-                <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">
+                <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {cat.category}
                 </span>
               </div>
               <div className="space-y-1">
                 <p className="text-lg font-bold" style={{ color: cat.color }}>
-                  {formatCurrency(cat.net_gmv)}
+                  {formatGMV(cat.net_gmv)}
                 </p>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-gray-500">
                   {formatNumber(cat.net_bookings)} bookings
                 </p>
               </div>
-              <div className="mt-2 pt-2 border-t border-white/5">
-                <p className="text-xs text-slate-500">
+              <div className="mt-2 pt-2 border-t border-gray-100">
+                <p className="text-xs text-gray-400">
                   {cat.partners_count} partner{cat.partners_count > 1 ? 's' : ''}
                 </p>
               </div>
@@ -326,7 +324,7 @@ export default function Ecommerce() {
 
       {/* KPI Summary */}
       {totals && (
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 animate-fade-in stagger-2">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-9 gap-4 animate-fade-in stagger-2">
           <MetricCard
             title="Gross Bookings"
             value={formatNumber(totals.gross_bookings)}
@@ -339,12 +337,12 @@ export default function Ecommerce() {
           />
           <MetricCard
             title="Gross GMV"
-            value={formatCurrency(totals.gross_gmv)}
+            value={formatGMV(totals.gross_gmv)}
             color="amber"
           />
           <MetricCard
             title="Net GMV"
-            value={formatCurrency(totals.net_gmv)}
+            value={formatGMV(totals.net_gmv)}
             color="green"
           />
           <MetricCard
@@ -353,9 +351,24 @@ export default function Ecommerce() {
             color="purple"
           />
           <MetricCard
-            title="% Cancelled"
+            title="% Cancel Ops"
             value={`${totals.pct_cancelled_bookings.toFixed(1)}%`}
             color="red"
+          />
+          <MetricCard
+            title="% Cancel GMV"
+            value={`${totals.pct_cancelled_gmv.toFixed(1)}%`}
+            color="red"
+          />
+          <MetricCard
+            title="# Farmacias"
+            value={formatNumber(totals.total_pharmacies)}
+            color="cyan"
+          />
+          <MetricCard
+            title="# Fcias. ≥1 ped."
+            value={formatNumber(totals.pharmacies_with_orders)}
+            color="teal"
           />
         </div>
       )}
@@ -371,64 +384,145 @@ export default function Ecommerce() {
           />
           <MetricCard
             title="Cancelled GMV"
-            value={formatCurrency(totals.cancelled_gmv)}
+            value={formatGMV(totals.cancelled_gmv)}
             color="red"
             size="sm"
           />
           <MetricCard
             title="Avg Orders/Pharmacy"
-            value={totals.avg_orders_per_pharmacy.toFixed(1)}
+            value={formatNumber(totals.avg_orders_per_pharmacy)}
             color="cyan"
             size="sm"
           />
           <MetricCard
             title="Avg GMV/Pharmacy"
-            value={formatCurrency(totals.avg_gmv_per_pharmacy)}
+            value={formatGMV(totals.avg_gmv_per_pharmacy)}
             color="cyan"
             size="sm"
           />
         </div>
       )}
 
-      {/* Charts */}
+      {/* Chart Time Filter */}
+      <div className="flex items-center gap-4 animate-fade-in stagger-4">
+        <span className="text-sm font-medium text-gray-600">Agrupar por:</span>
+        <div className="flex gap-2">
+          {CHART_GROUP_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              onClick={() => setChartGroupBy(option.value)}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                chartGroupBy === option.value
+                  ? 'bg-green-600 text-white shadow-md'
+                  : 'bg-white text-gray-600 border border-gray-200 hover:border-green-300 hover:bg-green-50'
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+        <span className="text-xs text-gray-400 ml-2">
+          (Datos del año actual{selectedPartners.length > 0 ? ` • ${selectedPartners.length} partner(s) seleccionado(s)` : ''})
+        </span>
+      </div>
+
+      {/* Stacked Bar Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in stagger-4">
-        {selectedPartners.length === 0 ? (
-          <>
-            <BarChartComponent
-              data={gmvByCategoryData}
-              title="Net GMV por Categoría"
-              color="#10b981"
-              useCustomColors
-            />
-            <BarChartComponent
-              data={gmvChartData}
-              title="Net GMV por Partner"
-              color="#10b981"
-              useCustomColors
-            />
-          </>
-        ) : (
-          <>
-            <BarChartComponent
-              data={gmvChartData}
-              title="Net GMV por Partner"
-              color="#10b981"
-              useCustomColors
-            />
-            <BarChartComponent
-              data={bookingsChartData}
-              title="Net Bookings por Partner"
-              color="#0ea5e9"
-              useCustomColors
-            />
-          </>
-        )}
+        <ExpandableChart title="# Orders Gross, Net & Cancelled" dataPoints={timeSeriesData?.data?.length || 12}>
+          <StackedBarChart
+            data={timeSeriesData?.data || []}
+            title="# Orders Gross, Net & Cancelled"
+            type="bookings"
+          />
+        </ExpandableChart>
+        <ExpandableChart title="€ GMV Gross, Net & Cancelled" dataPoints={timeSeriesData?.data?.length || 12}>
+          <StackedBarChart
+            data={timeSeriesData?.data || []}
+            title="€ GMV Gross, Net & Cancelled"
+            type="gmv"
+          />
+        </ExpandableChart>
+      </div>
+
+      {/* Line Charts - Averages */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in stagger-4">
+        <ExpandableChart title="Avg. orders per pharmacy" dataPoints={timeSeriesData?.data?.length || 12}>
+          <LineChartComponent
+            data={timeSeriesData?.data || []}
+            title="Avg. orders per pharmacy"
+            dataKey="avg_orders_per_pharmacy"
+            color="#22c55e"
+          />
+        </ExpandableChart>
+        <ExpandableChart title="Avg. GMV per pharmacy" dataPoints={timeSeriesData?.data?.length || 12}>
+          <LineChartComponent
+            data={timeSeriesData?.data || []}
+            title="Avg. GMV per pharmacy"
+            dataKey="avg_gmv_per_pharmacy"
+            color="#22c55e"
+            isCurrency
+          />
+        </ExpandableChart>
+      </div>
+
+      {/* More Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in stagger-4">
+        <ExpandableChart title="Avg. order value (Ticket medio)" dataPoints={timeSeriesData?.data?.length || 12}>
+          <LineChartComponent
+            data={timeSeriesData?.data || []}
+            title="Avg. order value (Ticket medio)"
+            dataKey="average_ticket"
+            color="#22c55e"
+            isCurrency
+          />
+        </ExpandableChart>
+        <ExpandableChart title="Pharmacies with orders" dataPoints={timeSeriesData?.data?.length || 12}>
+          <PharmacyComboChart
+            data={timeSeriesData?.data || []}
+            title="Pharmacies with orders"
+          />
+        </ExpandableChart>
+      </div>
+
+      {/* Data Tables Section */}
+      <div className="space-y-4 animate-fade-in stagger-5">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-800">
+            📊 Tabla de Datos
+            {selectedPartners.length > 0 && (
+              <span className="text-sm font-normal text-gray-500 ml-2">
+                ({selectedPartners.length} partner{selectedPartners.length > 1 ? 's' : ''} seleccionado{selectedPartners.length > 1 ? 's' : ''})
+              </span>
+            )}
+          </h3>
+          <div className="flex gap-2">
+            {CHART_GROUP_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                onClick={() => setTableGroupBy(option.value)}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                  tableGroupBy === option.value
+                    ? 'bg-green-600 text-white shadow-md'
+                    : 'bg-white text-gray-600 border border-gray-200 hover:border-green-300 hover:bg-green-50'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        
+        <TimeSeriesTable
+          data={tableTimeSeriesData?.data || []}
+          groupBy={tableGroupBy}
+          title={`Métricas ${tableGroupBy === 'week' ? 'Semanales' : tableGroupBy === 'month' ? 'Mensuales' : tableGroupBy === 'quarter' ? 'Trimestrales' : 'Anuales'}`}
+        />
       </div>
 
       {/* Partners Table */}
       <div className="card animate-fade-in">
-        <div className="card-header flex items-center justify-between">
-          <h3 className="font-semibold text-white">
+        <div className="card-header flex items-center justify-between bg-gray-50">
+          <h3 className="font-semibold text-gray-800">
             {selectedPartners.length > 0 
               ? `Partners Seleccionados (${filteredPartners.length})`
               : 'Todos los Partners'
@@ -437,7 +531,7 @@ export default function Ecommerce() {
           {selectedPartners.length > 0 && (
             <button
               onClick={() => setSelectedPartners([])}
-              className="text-xs text-slate-400 hover:text-white transition-colors"
+              className="text-xs text-green-600 hover:text-green-700 font-medium transition-colors"
             >
               Ver todos
             </button>

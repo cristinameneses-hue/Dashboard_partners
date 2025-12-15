@@ -1,0 +1,143 @@
+{
+  "partner": "glovo",
+  "periodo": "octubre 2025",
+  "fecha_analisis": "2025-12-02T11:23:33.797417",
+  "kpis": {
+    "num_bookings": 16466,
+    "num_bookings_cancelados": 1627,
+    "num_bookings_activos": 14839,
+    "gmv_total_euros": 349871.08,
+    "gmv_cancelado_euros": 32852.56,
+    "gmv_activo_euros": 317018.52,
+    "num_farmacias_con_pedidos": 929
+  },
+  "estadisticas_adicionales": {
+    "ticket_promedio_euros": 21.25,
+    "tasa_cancelacion_porcentaje": 9.88,
+    "gmv_promedio_por_farmacia_euros": 376.61
+  },
+  "pipeline_mongodb": [
+    {
+      "$match": {
+        "thirdUser.user": "glovo",
+        "createdDate": {
+          "$gte": "2025-10-01 00:00:00",
+          "$lt": "2025-11-01 00:00:00"
+        }
+      }
+    },
+    {
+      "$facet": {
+        "total_metrics": [
+          {
+            "$group": {
+              "_id": null,
+              "total_bookings": {
+                "$sum": 1
+              },
+              "total_gmv": {
+                "$sum": {
+                  "$cond": {
+                    "if": {
+                      "$ne": [
+                        "$thirdUser.price",
+                        null
+                      ]
+                    },
+                    "then": "$thirdUser.price",
+                    "else": {
+                      "$sum": {
+                        "$map": {
+                          "input": "$items",
+                          "as": "item",
+                          "in": {
+                            "$multiply": [
+                              {
+                                "$ifNull": [
+                                  "$$item.pvp",
+                                  0
+                                ]
+                              },
+                              {
+                                "$ifNull": [
+                                  "$$item.quantity",
+                                  0
+                                ]
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "cancelled_metrics": [
+          {
+            "$match": {
+              "state": "5a54c525b2948c860f00000d"
+            }
+          },
+          {
+            "$group": {
+              "_id": null,
+              "cancelled_bookings": {
+                "$sum": 1
+              },
+              "cancelled_gmv": {
+                "$sum": {
+                  "$cond": {
+                    "if": {
+                      "$ne": [
+                        "$thirdUser.price",
+                        null
+                      ]
+                    },
+                    "then": "$thirdUser.price",
+                    "else": {
+                      "$sum": {
+                        "$map": {
+                          "input": "$items",
+                          "as": "item",
+                          "in": {
+                            "$multiply": [
+                              {
+                                "$ifNull": [
+                                  "$$item.pvp",
+                                  0
+                                ]
+                              },
+                              {
+                                "$ifNull": [
+                                  "$$item.quantity",
+                                  0
+                                ]
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "unique_pharmacies": [
+          {
+            "$group": {
+              "_id": "$target"
+            }
+          },
+          {
+            "$count": "num_pharmacies"
+          }
+        ]
+      }
+    }
+  ]
+}

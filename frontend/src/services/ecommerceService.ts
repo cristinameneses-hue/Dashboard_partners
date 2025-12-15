@@ -4,6 +4,7 @@ import type {
   EcommerceResponse,
   EcommerceMetrics,
   PartnerInfo,
+  TimeSeriesResponse,
 } from '../types';
 
 export const ecommerceService = {
@@ -40,6 +41,26 @@ export const ecommerceService = {
 
   async getPartners(): Promise<PartnerInfo[]> {
     const response = await api.get<PartnerInfo[]>('/ecommerce/partners');
+    return response.data;
+  },
+
+  async getTimeSeries(
+    periodType: PeriodType = 'this_year',
+    groupBy: string = 'month',
+    partners?: string[],
+    startDate?: string,
+    endDate?: string
+  ): Promise<TimeSeriesResponse> {
+    const params = new URLSearchParams();
+    params.append('period_type', periodType);
+    params.append('group_by', groupBy);
+    if (partners && partners.length > 0) {
+      params.append('partners', partners.join(','));
+    }
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    
+    const response = await api.get<TimeSeriesResponse>(`/ecommerce/timeseries?${params}`);
     return response.data;
   },
 };

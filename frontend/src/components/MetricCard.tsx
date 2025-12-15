@@ -2,26 +2,38 @@ interface MetricCardProps {
   title: string;
   value: string | number;
   subtitle?: string;
-  color?: 'blue' | 'green' | 'amber' | 'purple' | 'red' | 'cyan';
+  color?: 'blue' | 'green' | 'amber' | 'purple' | 'red' | 'cyan' | 'teal';
   size?: 'sm' | 'md' | 'lg';
 }
 
 const colorClasses = {
-  blue: 'from-sky-500/20 to-sky-600/5 border-sky-500/20',
-  green: 'from-emerald-500/20 to-emerald-600/5 border-emerald-500/20',
-  amber: 'from-amber-500/20 to-amber-600/5 border-amber-500/20',
-  purple: 'from-purple-500/20 to-purple-600/5 border-purple-500/20',
-  red: 'from-red-500/20 to-red-600/5 border-red-500/20',
-  cyan: 'from-cyan-500/20 to-cyan-600/5 border-cyan-500/20',
+  blue: 'bg-blue-50 border-blue-200',
+  green: 'bg-green-50 border-green-200',
+  amber: 'bg-amber-50 border-amber-200',
+  purple: 'bg-purple-50 border-purple-200',
+  red: 'bg-red-50 border-red-200',
+  cyan: 'bg-cyan-50 border-cyan-200',
+  teal: 'bg-teal-50 border-teal-200',
 };
 
 const textColors = {
-  blue: 'text-sky-400',
-  green: 'text-emerald-400',
-  amber: 'text-amber-400',
-  purple: 'text-purple-400',
-  red: 'text-red-400',
-  cyan: 'text-cyan-400',
+  blue: 'text-blue-700',
+  green: 'text-green-700',
+  amber: 'text-amber-700',
+  purple: 'text-purple-700',
+  red: 'text-red-700',
+  cyan: 'text-cyan-700',
+  teal: 'text-teal-700',
+};
+
+const iconColors = {
+  blue: 'bg-blue-100',
+  green: 'bg-green-100',
+  amber: 'bg-amber-100',
+  purple: 'bg-purple-100',
+  red: 'bg-red-100',
+  cyan: 'bg-cyan-100',
+  teal: 'bg-teal-100',
 };
 
 const sizeClasses = {
@@ -45,17 +57,24 @@ export default function MetricCard({
 }: MetricCardProps) {
   return (
     <div
-      className={`rounded-xl bg-gradient-to-br ${colorClasses[color]} border backdrop-blur-sm ${sizeClasses[size]}`}
+      className={`rounded-xl ${colorClasses[color]} border ${sizeClasses[size]} transition-all hover:shadow-md`}
     >
-      <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1">
-        {title}
-      </p>
-      <p className={`font-bold ${textColors[color]} ${valueSizes[size]}`}>
-        {value}
-      </p>
-      {subtitle && (
-        <p className="text-xs text-slate-500 mt-1">{subtitle}</p>
-      )}
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
+            {title}
+          </p>
+          <p className={`font-bold ${textColors[color]} ${valueSizes[size]}`}>
+            {value}
+          </p>
+          {subtitle && (
+            <p className="text-xs text-gray-400 mt-1">{subtitle}</p>
+          )}
+        </div>
+        <div className={`w-8 h-8 rounded-lg ${iconColors[color]} flex items-center justify-center`}>
+          <div className={`w-2 h-2 rounded-full ${textColors[color].replace('text-', 'bg-')}`} />
+        </div>
+      </div>
     </div>
   );
 }

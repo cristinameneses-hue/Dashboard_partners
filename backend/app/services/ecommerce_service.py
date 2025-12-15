@@ -1,4 +1,4 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.repositories.booking_repository import BookingRepository
@@ -8,6 +8,7 @@ from app.schemas.metrics import (
     EcommerceMetrics,
     EcommerceResponse,
     BaseMetrics,
+    TimeSeriesPoint,
 )
 from app.schemas.periods import get_period_dates
 from app.core.config import get_settings
@@ -123,7 +124,7 @@ class EcommerceService:
             start_date, end_date
         )
         
-        totals = self._calculate_totals(totals_raw)
+        totals = await self._calculate_totals(totals_raw)
         
         return EcommerceResponse(
             period=period,
@@ -156,7 +157,7 @@ class EcommerceService:
         
         return self._calculate_derived_metrics(raw_metrics, pharmacies_with_tag)
     
-    def _calculate_totals(self, raw: Dict[str, Any]) -> BaseMetrics:
+    async def _calculate_totals(self, raw: Dict[str, Any]) -> BaseMetrics:
         """Calculate total metrics across all partners."""
         
         gross_bookings = raw.get("gross_bookings", 0)
@@ -166,6 +167,9 @@ class EcommerceService:
         cancelled_gmv = raw.get("cancelled_gmv", 0.0)
         net_gmv = raw.get("net_gmv", 0.0)
         pharmacies_with_orders = raw.get("pharmacies_with_orders", 0)
+        
+        # Get total pharmacies
+        total_pharmacies = await self._booking_repo.get_total_pharmacies()
         
         pct_cancelled_bookings = (
             (cancelled_bookings / gross_bookings * 100) 
@@ -203,7 +207,67 @@ class EcommerceService:
             avg_orders_per_pharmacy=round(avg_orders_per_pharmacy, 2),
             avg_gmv_per_pharmacy=round(avg_gmv_per_pharmacy, 2),
             pct_cancelled_bookings=round(pct_cancelled_bookings, 2),
-            pct_cancelled_gmv=round(pct_cancelled_gmv, 2)
+            pct_cancelled_gmv=round(pct_cancelled_gmv, 2),
+            total_pharmacies=total_pharmacies,
+            pharmacies_with_orders=pharmacies_with_orders
         )
+
+    async def get_time_series(
+        self,
+        period: PeriodFilter,
+        group_by: str = "month",
+        partners: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
+        """Get time series metrics grouped by period."""
+        
+        start_date, end_date = get_period_dates(period)
+        
+        # Get total pharmacies (all pharmacies that have ever received orders)
+        total_pharmacies = await self._booking_repo.get_total_pharmacies()
+        
+        raw_data = await self._booking_repo.get_ecommerce_time_series(
+            start_date, end_date, group_by, partners
+        )
+        
+        result = []
+        for item in raw_data:
+            period_info = item.get("period", {})
+            
+            # Format period label
+            if group_by == "week":
+                label = f"S{period_info.get('week', 0)} {period_info.get('year', '')}"
+            elif group_by == "quarter":
+                label = f"Q{int(period_info.get('quarter', 0))} {period_info.get('year', '')}"
+            elif group_by == "year":
+                label = str(period_info.get('year', ''))
+            else:  # month
+                months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 
+                         'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+                month_idx = period_info.get('month', 1) - 1
+                label = f"{months[month_idx]} {str(period_info.get('year', ''))[-2:]}"
+            
+            pharmacies_with_orders = item.get("pharmacies_with_orders", 0)
+            pct_active = (pharmacies_with_orders / total_pharmacies * 100) if total_pharmacies > 0 else 0
+            
+            result.append(TimeSeriesPoint(
+                period=label,
+                gross_bookings=item.get("gross_bookings", 0),
+                cancelled_bookings=item.get("cancelled_bookings", 0),
+                net_bookings=item.get("net_bookings", 0),
+                gross_gmv=round(item.get("gross_gmv", 0), 2),
+                cancelled_gmv=round(item.get("cancelled_gmv", 0), 2),
+                net_gmv=round(item.get("net_gmv", 0), 2),
+                pharmacies_with_orders=pharmacies_with_orders,
+                total_pharmacies=total_pharmacies,
+                pct_pharmacies_active=round(pct_active, 1),
+                average_ticket=round(item.get("average_ticket", 0), 2),
+                avg_orders_per_pharmacy=round(item.get("avg_orders_per_pharmacy", 0), 2),
+                avg_gmv_per_pharmacy=round(item.get("avg_gmv_per_pharmacy", 0), 2)
+            ))
+        
+        return {
+            "data": result,
+            "total_pharmacies": total_pharmacies
+        }
 
 

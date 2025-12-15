@@ -1,0 +1,288 @@
+{
+  "timestamp": "2025-11-20T10:35:41.063078",
+  "summary": {
+    "total": 32,
+    "passed": 10,
+    "partial": 6,
+    "failed": 9,
+    "skipped": 7
+  },
+  "results_by_mode": {
+    "pharmacy": [
+      {
+        "query": "¿Cuál es el estado actual de la farmacia 123?",
+        "status": "⚠️ PARTIAL",
+        "has_data": true,
+        "is_accurate": false,
+        "notes": [],
+        "answer_preview": "❌ No se encontró la farmacia con ID 123"
+      },
+      {
+        "query": "Mostrar farmacias activas en Madrid",
+        "status": "✅ PASS",
+        "has_data": true,
+        "is_accurate": true,
+        "notes": [],
+        "answer_preview": "\n🏥 **Farmacias Activas en Madrid** (Luda Mind)\n\n• Madrid: 0 farmacias activas\n• Total sistema: 0 de 4,837 farmacias\n\n*Fuente: Luda Mind - MongoDB*\n   ..."
+      },
+      {
+        "query": "¿Cuántos pedidos tuvo la farmacia 456 esta semana?",
+        "status": "⚠️ PARTIAL",
+        "has_data": true,
+        "is_accurate": false,
+        "notes": [],
+        "answer_preview": "❌ No se encontró la farmacia con ID 456"
+      },
+      {
+        "query": "Stock disponible en la farmacia 789",
+        "status": "⚠️ PARTIAL",
+        "has_data": true,
+        "is_accurate": false,
+        "notes": [],
+        "answer_preview": "❌ No se encontró la farmacia con ID 789"
+      },
+      {
+        "query": "Top 10 farmacias con más ventas del mes",
+        "status": "❌ EXCEPTION",
+        "notes": [
+          "timed out"
+        ]
+      },
+      {
+        "query": "Farmacias con problemas de stock crítico",
+        "status": "❌ FAIL",
+        "has_data": false,
+        "is_accurate": false,
+        "notes": [],
+        "answer_preview": "\n🏥 **Información de Farmacias** (Luda Mind)\n\nTotal de farmacias en el sistema: 4,837\n\n💡 **Sugerencias:**\n• Pregunta por una farmacia específica (ej: \"..."
+      },
+      {
+        "query": "¿Qué farmacia tiene el mejor rendimiento en Barcelona?",
+        "status": "❌ FAIL",
+        "has_data": false,
+        "is_accurate": false,
+        "notes": [],
+        "answer_preview": "\n🏥 **Información de Farmacias** (Luda Mind)\n\nTotal de farmacias en el sistema: 4,837\n\n💡 **Sugerencias:**\n• Pregunta por una farmacia específica (ej: \"..."
+      },
+      {
+        "query": "Historial de pedidos de la farmacia 234",
+        "status": "⚠️ PARTIAL",
+        "has_data": true,
+        "is_accurate": false,
+        "notes": [],
+        "answer_preview": "❌ No se encontró la farmacia con ID 234"
+      }
+    ],
+    "product": [
+      {
+        "query": "Top 10 productos más vendidos esta semana",
+        "status": "⏭️ SKIP",
+        "has_data": false,
+        "is_accurate": false,
+        "notes": [
+          "SKIP: Productos requiere MySQL (solo sell in/sell out)"
+        ],
+        "answer_preview": "\n💊 **Top 10 Productos Más Vendidos** (Luda Mind)\n\n(Simulación - MySQL query aquí)\n1. Ibuprofeno 600mg - 5,234 unidades\n2. Paracetamol 1g - 4,567 unida..."
+      },
+      {
+        "query": "¿Cuál es el stock actual del producto 12345?",
+        "status": "❌ EXCEPTION",
+        "notes": [
+          "timed out"
+        ]
+      },
+      {
+        "query": "Productos con nivel de riesgo alto",
+        "status": "⏭️ SKIP",
+        "has_data": false,
+        "is_accurate": false,
+        "notes": [
+          "SKIP: Query de productos - solo MongoDB a partir de ahora"
+        ],
+        "answer_preview": "\n💊 **Productos por Nivel de Riesgo** (Luda Mind)\n\n⚠️ **Riesgo Alto (Nivel 3-4):**\n• Productos con baja rotación\n• Stock crítico\n• Próximos a caducar\n\n..."
+      },
+      {
+        "query": "Evolución de ventas del código nacional 67890",
+        "status": "⏭️ SKIP",
+        "has_data": false,
+        "is_accurate": false,
+        "notes": [
+          "SKIP: Query de productos - solo MongoDB a partir de ahora"
+        ],
+        "answer_preview": "\n💊 **Información del Producto 67890** (Luda Mind)\n\nPara ver datos de ventas, necesitamos la conexión a MySQL.\nPara stock actual, la consulta se proces..."
+      },
+      {
+        "query": "¿Qué farmacias tienen el producto 11111?",
+        "status": "⏭️ SKIP",
+        "has_data": false,
+        "is_accurate": false,
+        "notes": [
+          "SKIP: Query de productos - solo MongoDB a partir de ahora"
+        ],
+        "answer_preview": "\n💊 **Información del Producto 11111** (Luda Mind)\n\nPara ver datos de ventas, necesitamos la conexión a MySQL.\nPara stock actual, la consulta se proces..."
+      },
+      {
+        "query": "Productos con mayor rotación del mes",
+        "status": "⏭️ SKIP",
+        "has_data": false,
+        "is_accurate": false,
+        "notes": [
+          "SKIP: Query de productos - solo MongoDB a partir de ahora"
+        ],
+        "answer_preview": "\n💊 **Catálogo de Productos** (Luda Mind)\n\nTotal de productos: 707,940\n\n💡 **Puedes consultar:**\n• Stock de un producto específico\n• Top productos más v..."
+      },
+      {
+        "query": "Análisis de demanda del medicamento 22222",
+        "status": "⏭️ SKIP",
+        "has_data": false,
+        "is_accurate": false,
+        "notes": [
+          "SKIP: Query de productos - solo MongoDB a partir de ahora"
+        ],
+        "answer_preview": "\n💊 **Catálogo de Productos** (Luda Mind)\n\nTotal de productos: 707,940\n\n💡 **Puedes consultar:**\n• Stock de un producto específico\n• Top productos más v..."
+      },
+      {
+        "query": "Productos próximos a caducar",
+        "status": "⏭️ SKIP",
+        "has_data": false,
+        "is_accurate": false,
+        "notes": [
+          "SKIP: Query de productos - solo MongoDB a partir de ahora"
+        ],
+        "answer_preview": "\n💊 **Catálogo de Productos** (Luda Mind)\n\nTotal de productos: 707,940\n\n💡 **Puedes consultar:**\n• Stock de un producto específico\n• Top productos más v..."
+      }
+    ],
+    "partner": [
+      {
+        "query": "GMV total de Glovo esta semana",
+        "status": "✅ PASS",
+        "has_data": true,
+        "is_accurate": true,
+        "notes": [],
+        "answer_preview": "\n🤝 **Análisis de Partner: Glovo** (Luda Mind)\n\n📅 **Período:** esta semana\n\n💰 **Métricas Principales:**\n• GMV Total: €73,362.71\n• Total de pedidos: 3,8..."
+      },
+      {
+        "query": "Comparación de pedidos entre Uber y Glovo",
+        "status": "❌ FAIL",
+        "has_data": false,
+        "is_accurate": true,
+        "notes": [],
+        "answer_preview": "\n🤝 **Análisis de Partner: Glovo** (Luda Mind)\n\n📅 **Período:** últimos 7 días\n\n💰 **Métricas Principales:**\n• GMV Total: €73,321.44\n• Total de pedidos: ..."
+      },
+      {
+        "query": "¿Cuánto facturó Danone el mes pasado?",
+        "status": "⚠️ PARTIAL",
+        "has_data": true,
+        "is_accurate": false,
+        "notes": [],
+        "answer_preview": "\n🤝 **Análisis de Partner: Danone** (Luda Mind)\n\n📅 **Período:** este mes\n\n💰 **Métricas Principales:**\n• GMV Total: €1,546.73\n• Total de pedidos: 27\n• T..."
+      },
+      {
+        "query": "Top farmacias por canal Glovo",
+        "status": "❌ FAIL",
+        "has_data": false,
+        "is_accurate": false,
+        "notes": [],
+        "answer_preview": "\n🤝 **Análisis de Partner: Glovo** (Luda Mind)\n\n📅 **Período:** últimos 7 días\n\n💰 **Métricas Principales:**\n• GMV Total: €73,321.44\n• Total de pedidos: ..."
+      },
+      {
+        "query": "Evolución mensual de GMV por partner",
+        "status": "❌ FAIL",
+        "has_data": false,
+        "is_accurate": false,
+        "notes": [],
+        "answer_preview": "\n🤝 **Análisis de Partners** (Luda Mind)\n\nPartners disponibles:\n• Glovo\n• Uber\n• Danone\n• Hartmann\n• Carrefour\n\n💡 **Puedes consultar:**\n• GMV por partn..."
+      },
+      {
+        "query": "Comisiones pagadas a Carrefour este mes",
+        "status": "⚠️ PARTIAL",
+        "has_data": true,
+        "is_accurate": false,
+        "notes": [],
+        "answer_preview": "\n🤝 **Análisis de Partner: Carrefour** (Luda Mind)\n\n📅 **Período:** este mes\n\n💰 **Métricas Principales:**\n• GMV Total: €14,788.55\n• Total de pedidos: 34..."
+      },
+      {
+        "query": "¿Cuál es el partner más rentable?",
+        "status": "❌ FAIL",
+        "has_data": false,
+        "is_accurate": false,
+        "notes": [],
+        "answer_preview": "\n🤝 **Análisis de Partners** (Luda Mind)\n\nPartners disponibles:\n• Glovo\n• Uber\n• Danone\n• Hartmann\n• Carrefour\n\n💡 **Puedes consultar:**\n• GMV por partn..."
+      },
+      {
+        "query": "Tasa de conversión por canal",
+        "status": "❌ FAIL",
+        "has_data": false,
+        "is_accurate": false,
+        "notes": [],
+        "answer_preview": "\n🤝 **Análisis de Partners** (Luda Mind)\n\nPartners disponibles:\n• Glovo\n• Uber\n• Danone\n• Hartmann\n• Carrefour\n\n💡 **Puedes consultar:**\n• GMV por partn..."
+      }
+    ],
+    "conversational": [
+      {
+        "query": "Dame un resumen ejecutivo del mes",
+        "status": "✅ PASS",
+        "has_data": true,
+        "is_accurate": true,
+        "notes": [],
+        "answer_preview": "\n💬 **Luda Mind - Modo Conversacional**\n\nTu consulta: \"Dame un resumen ejecutivo del mes\"\n\nEste modo permite consultas abiertas y análisis complejos qu..."
+      },
+      {
+        "query": "¿Cuáles son los principales KPIs actuales?",
+        "status": "✅ PASS",
+        "has_data": true,
+        "is_accurate": true,
+        "notes": [],
+        "answer_preview": "\n💬 **Luda Mind - Modo Conversacional**\n\nTu consulta: \"¿Cuáles son los principales KPIs actuales?\"\n\nEste modo permite consultas abiertas y análisis com..."
+      },
+      {
+        "query": "Analiza las tendencias de ventas recientes",
+        "status": "✅ PASS",
+        "has_data": true,
+        "is_accurate": true,
+        "notes": [],
+        "answer_preview": "\n💬 **Luda Mind - Modo Conversacional**\n\nTu consulta: \"Analiza las tendencias de ventas recientes\"\n\nEste modo permite consultas abiertas y análisis com..."
+      },
+      {
+        "query": "¿Qué anomalías detectas en los datos?",
+        "status": "✅ PASS",
+        "has_data": true,
+        "is_accurate": true,
+        "notes": [],
+        "answer_preview": "\n💬 **Luda Mind - Modo Conversacional**\n\nTu consulta: \"¿Qué anomalías detectas en los datos?\"\n\nEste modo permite consultas abiertas y análisis complejo..."
+      },
+      {
+        "query": "Compara el rendimiento actual vs mes anterior",
+        "status": "✅ PASS",
+        "has_data": true,
+        "is_accurate": true,
+        "notes": [],
+        "answer_preview": "\n💬 **Luda Mind - Modo Conversacional**\n\nTu consulta: \"Compara el rendimiento actual vs mes anterior\"\n\nEste modo permite consultas abiertas y análisis ..."
+      },
+      {
+        "query": "¿Cuáles son las oportunidades de mejora?",
+        "status": "✅ PASS",
+        "has_data": true,
+        "is_accurate": true,
+        "notes": [],
+        "answer_preview": "\n💬 **Luda Mind - Modo Conversacional**\n\nTu consulta: \"¿Cuáles son las oportunidades de mejora?\"\n\nEste modo permite consultas abiertas y análisis compl..."
+      },
+      {
+        "query": "Dashboard general del negocio",
+        "status": "✅ PASS",
+        "has_data": true,
+        "is_accurate": true,
+        "notes": [],
+        "answer_preview": "\n💬 **Luda Mind - Modo Conversacional**\n\nTu consulta: \"Dashboard general del negocio\"\n\nEste modo permite consultas abiertas y análisis complejos que cr..."
+      },
+      {
+        "query": "Predicción de ventas para la próxima semana",
+        "status": "✅ PASS",
+        "has_data": true,
+        "is_accurate": true,
+        "notes": [],
+        "answer_preview": "\n💬 **Luda Mind - Modo Conversacional**\n\nTu consulta: \"Predicción de ventas para la próxima semana\"\n\nEste modo permite consultas abiertas y análisis co..."
+      }
+    ]
+  }
+}

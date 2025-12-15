@@ -31,6 +31,8 @@ export interface BaseMetrics {
   avg_gmv_per_pharmacy: number;
   pct_cancelled_bookings: number;
   pct_cancelled_gmv: number;
+  total_pharmacies: number;
+  pharmacies_with_orders: number;
 }
 
 // Ecommerce Metrics (per partner)
@@ -48,6 +50,29 @@ export interface EcommerceResponse {
   period_end: string;
   partners: EcommerceMetrics[];
   totals: BaseMetrics;
+}
+
+// Time Series Types
+export interface TimeSeriesPoint {
+  period: string;
+  gross_bookings: number;
+  cancelled_bookings: number;
+  net_bookings: number;
+  gross_gmv: number;
+  cancelled_gmv: number;
+  net_gmv: number;
+  pharmacies_with_orders: number;
+  total_pharmacies: number;
+  pct_pharmacies_active: number;
+  average_ticket: number;
+  avg_orders_per_pharmacy: number;
+  avg_gmv_per_pharmacy: number;
+}
+
+export interface TimeSeriesResponse {
+  group_by: string;
+  data: TimeSeriesPoint[];
+  total_pharmacies: number;
 }
 
 // Shortage Metrics (global)
