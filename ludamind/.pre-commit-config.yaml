@@ -1,0 +1,158 @@
+# Pre-commit hooks para garantizar calidad del código
+# Instalar con: pre-commit install
+# Ejecutar manualmente: pre-commit run --all-files
+
+repos:
+  # Hooks generales de Python
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      # Verificaciones de sintaxis
+      - id: check-ast  # Verifica sintaxis Python válida
+      - id: check-docstring-first  # Docstring antes del código
+      
+      # Detección de problemas de seguridad
+      - id: detect-private-key  # NO claves privadas en el repo
+      - id: check-added-large-files  # Evitar archivos grandes
+        args: ['--maxkb=1000']
+      
+      # Formato de archivos
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+      - id: check-xml
+      
+      # Limpieza de código
+      - id: trailing-whitespace  # Eliminar espacios al final
+      - id: end-of-file-fixer  # Asegurar newline al final
+      - id: mixed-line-ending  # Consistencia en line endings
+        args: ['--fix=lf']
+      
+      # Evitar problemas comunes
+      - id: check-merge-conflict  # No dejar marcadores de merge
+      - id: debug-statements  # No dejar print/debugger
+      - id: no-commit-to-branch  # No commit directo a main/master
+        args: ['--branch', 'main', '--branch', 'master']
+
+  # Black - Formateador de código
+  - repo: https://github.com/psf/black
+    rev: 23.12.0
+    hooks:
+      - id: black
+        language_version: python3
+        args: ['--line-length=100']
+
+  # isort - Ordenar imports
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: ['--profile', 'black', '--line-length', '100']
+
+  # Flake8 - Linting
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.0.0
+    hooks:
+      - id: flake8
+        args: [
+          '--max-line-length=100',
+          '--ignore=E203,E266,E501,W503',  # Compatibilidad con Black
+          '--max-complexity=10',  # Complejidad ciclomática
+          '--select=B,C,E,F,W,T4,B9'
+        ]
+
+  # MyPy - Type checking
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.7.0
+    hooks:
+      - id: mypy
+        args: ['--ignore-missing-imports', '--strict-optional']
+
+  # Bandit - Seguridad
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        args: ['-ll', '-r', 'src/', 'domain/', 'infrastructure/']
+        exclude: 'tests/'
+
+  # Safety - Vulnerabilidades en dependencias
+  - repo: https://github.com/Lucas-C/pre-commit-hooks-safety
+    rev: v1.3.3
+    hooks:
+      - id: python-safety-dependencies-check
+
+  # Detectar secretos
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: '.*\.lock$|package-lock\.json$|.*\.example$'
+
+  # SQL Formatter (si tienes archivos SQL)
+  - repo: https://github.com/sqlfluff/sqlfluff
+    rev: 3.0.0a1
+    hooks:
+      - id: sqlfluff-lint
+        files: '\.sql$'
+        args: ['--dialect', 'mysql']
+      - id: sqlfluff-fix
+        files: '\.sql$'
+        args: ['--dialect', 'mysql']
+
+  # Verificación de requirements.txt
+  - repo: https://github.com/pre-commit/pygrep-hooks
+    rev: v1.10.0
+    hooks:
+      - id: python-no-eval  # No usar eval()
+      - id: python-no-log-warn  # Usar warning en vez de warn
+      - id: python-use-type-annotations  # Preferir type hints
+
+  # Custom hooks locales
+  - repo: local
+    hooks:
+      # Verificar que no hay credenciales hardcodeadas
+      - id: check-credentials
+        name: Check for hardcoded credentials
+        entry: bash -c 'grep -r "password\s*=\s*[\"'\''][^\"'\'']*[\"'\'']" --include="*.py" --exclude-dir=tests --exclude-dir=.git . && exit 1 || exit 0'
+        language: system
+        pass_filenames: false
+      
+      # Verificar que .env no se está commiteando
+      - id: check-env-file
+        name: Block .env file
+        entry: bash -c 'git ls-files | grep -E "^\.env$" && exit 1 || exit 0'
+        language: system
+        pass_filenames: false
+      
+      # Ejecutar tests antes de commit (opcional, puede ser lento)
+      # - id: pytest
+      #   name: Run pytest
+      #   entry: pytest
+      #   language: system
+      #   pass_filenames: false
+      #   stages: [commit]
+
+# Configuración adicional
+default_language_version:
+  python: python3.11
+
+# Etapas donde ejecutar los hooks
+default_stages: [commit, push]
+
+# Archivos a excluir globalmente
+exclude: |
+  (?x)(
+    ^tests/fixtures/|
+    ^.git/|
+    ^.venv/|
+    ^venv/|
+    ^__pycache__/|
+    ^.pytest_cache/|
+    ^htmlcov/|
+    ^.coverage|
+    ^.env$|
+    ^.env.local$|
+    migrations/versions/
+  )

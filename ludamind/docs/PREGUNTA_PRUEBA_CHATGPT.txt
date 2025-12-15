@@ -1,0 +1,86 @@
+════════════════════════════════════════════════════════════════════════════════
+PREGUNTA DE PRUEBA PARA CHATGPT
+════════════════════════════════════════════════════════════════════════════════
+
+Una vez que ChatGPT haya confirmado el entrenamiento y respondido las 6 preguntas
+del Test Final correctamente, copia y pega esta pregunta:
+
+════════════════════════════════════════════════════════════════════════════════
+
+GMV que se ha movido en Glovo la última semana
+
+════════════════════════════════════════════════════════════════════════════════
+
+RESPUESTA CORRECTA ESPERADA:
+════════════════════════════════════════════════════════════════════════════════
+
+ChatGPT debe decir algo como:
+
+"Para responder esta pregunta, uso MongoDB (no MySQL) porque mencionas 'Glovo',
+que es un canal de venta/partner.
+
+El proceso es:
+
+1. Buscar en la colección 'users' el partner Glovo:
+   db.users.findOne({ idUser: "glovo" })
+   Esto me dará el ObjectId del usuario Glovo
+
+2. Con ese ObjectId (como string), buscar todos los bookings creados por Glovo
+   en la última semana:
+   - Filtrar por: creator = glovo_id
+   - Filtrar por: createdDate >= hace 7 días
+   - Excluir cancelados: state != '5a54c525b2948c860f00000d'
+
+3. Calcular el GMV sumando pvp * quantity de todos los items en cada booking
+
+Query MongoDB:
+db.bookings.aggregate([...])
+"
+
+════════════════════════════════════════════════════════════════════════════════
+
+CHECKLIST - ChatGPT DEBE mencionar:
+════════════════════════════════════════════════════════════════════════════════
+
+✅ Usar MongoDB (NO MySQL)
+✅ Glovo es un partner/canal de venta
+✅ Buscar primero en colección 'users'
+✅ Usar campo 'creator' en bookings
+✅ Calcular GMV de items (pvp * quantity)
+✅ Filtrar por createdDate
+✅ Excluir cancelados (state)
+
+════════════════════════════════════════════════════════════════════════════════
+
+ERRORES QUE INDICARÍAN FALLO:
+════════════════════════════════════════════════════════════════════════════════
+
+❌ Mencionar MySQL
+❌ Buscar en tabla 'ventas_diarias' o 'trends_consolidado'
+❌ Tratar a Glovo como un producto
+❌ No mencionar la colección 'users'
+❌ No explicar el cálculo de GMV de items
+
+════════════════════════════════════════════════════════════════════════════════
+
+PREGUNTAS ADICIONALES (OPCIONAL):
+════════════════════════════════════════════════════════════════════════════════
+
+Si ChatGPT responde correctamente la primera pregunta, puedes probar con estas:
+
+1. "Ventas totales de Ibuprofeno"
+   → Debe decir: MySQL trends_consolidado (no menciona canal)
+
+2. "Cuántas unidades de Paracetamol se vendieron en Glovo"
+   → Debe decir: MongoDB bookings (menciona Glovo + producto)
+
+3. "GMV de derivaciones del último mes"
+   → Debe decir: MongoDB bookings WHERE origin EXISTS
+
+4. "Comparar ventas de Aspirina en Glovo vs shortage"
+   → Debe decir: 2 queries MongoDB (una por canal)
+
+5. "Top 10 productos más vendidos en Uber Eats"
+   → Debe decir: MongoDB bookings WHERE creator = uber_id
+
+════════════════════════════════════════════════════════════════════════════════
