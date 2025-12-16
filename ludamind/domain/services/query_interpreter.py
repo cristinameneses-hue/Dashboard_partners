@@ -395,10 +395,45 @@ CRÍTICO GMV:
 - O usa $sum con $map: {{"$sum": {{"$map": {{"input": "$items", "as": "item", "in": {{"$multiply": ["$$item.pvp", "$$item.quantity"]}}}}}}}}
 """
         
+        # Si pide comparativa de provincias/ciudades
+        if any(word in query_lower for word in ['comparar', 'comparativa', 'vs', 'versus', 'diferencia entre']):
+            if any(word in query_lower for word in ['provincia', 'provincias', 'ciudad', 'ciudades']):
+                prompt += """
+
+**QUERY DE COMPARACIÓN DE PROVINCIAS/CIUDADES**
+Para queries comparativas entre dos provincias o ciudades:
+
+1. Generar DOS aggregations separadas (una por cada ubicación)
+2. Respuesta DEBE incluir los siguientes campos estructurados:
+   - provincia_1: nombre de la primera provincia
+   - provincia_2: nombre de la segunda provincia
+   - metricas: array con las métricas comparativas
+
+3. Para cada provincia calcular:
+   - farmacias_activas: count de pharmacies con {active: 1, "contact.province": {$regex: "provincia", $options: "i"}}
+   - gmv_total: suma de GMV de bookings en ese período
+   - pedidos_totales: count de bookings
+   - pedidos_cancelados: count de bookings con status cancelado
+   - porcentaje_cancelacion: (pedidos_cancelados / pedidos_totales) * 100
+   - gmv_cancelado: GMV de pedidos cancelados
+   - ticket_medio: gmv_total / pedidos_totales
+
+4. En la explanation, incluir un JSON estructurado así:
+{
+  "tipo": "comparacion_provincias",
+  "provincia_1": "Madrid",
+  "provincia_2": "Barcelona",
+  "periodo": "este mes",
+  "pipeline_provincia_1": [...],
+  "pipeline_provincia_2": [...]
+}
+
+IMPORTANTE: El sistema usará estos pipelines para generar una TABLA COMPARATIVA."""
+
         prompt += """
 
 Genera la agregación MongoDB correspondiente."""
-        
+
         return prompt
     
     def _fallback_interpretation(self, query: str, mode: str) -> Dict[str, Any]:

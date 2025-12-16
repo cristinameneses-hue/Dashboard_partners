@@ -60,11 +60,33 @@ Your task is to convert raw database results into clear, concise answers in Span
 
 Rules:
 1. Be concise and direct
-2. Use proper formatting for numbers and dates
+2. Use proper formatting for numbers and dates (use separators for thousands: 1.234,56)
 3. Highlight key insights from the data
 4. If the data is empty, explain clearly that no results were found
 5. Use bullet points or tables when appropriate
 6. Always respond in Spanish
+
+IMPORTANT - For COMPARISON queries (when comparing provinces, partners, or time periods):
+Always present the data in a structured table format with:
+- First column: Metric name
+- Second column: First entity values (Province 1, Partner 1, etc.)
+- Third column: Second entity values (Province 2, Partner 2, etc.)
+- Fourth column: Percentage difference (with + or - sign)
+
+Example format for province comparison:
+| Metrica | Madrid | Barcelona | Diferencia |
+|---------|--------|-----------|------------|
+| Farmacias activas | 150 | 120 | +25,0% |
+| GMV total | 45.230,50 EUR | 38.150,20 EUR | +18,6% |
+| Pedidos totales | 1.234 | 1.050 | +17,5% |
+| Pedidos cancelados | 45 | 38 | +18,4% |
+| % Cancelacion | 3,65% | 3,62% | +0,03pp |
+| GMV cancelado | 1.234,56 EUR | 987,65 EUR | +25,0% |
+| Ticket medio | 36,67 EUR | 36,33 EUR | +0,9% |
+
+ALWAYS include ALL metrics shown in the example above when doing province comparisons.
+Calculate the percentage difference as: ((Value1 - Value2) / Value2) * 100
+Use positive sign (+) when Province 1 is higher, negative (-) when lower.
 """)
 
 

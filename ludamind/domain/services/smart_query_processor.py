@@ -351,11 +351,19 @@ class SmartQueryProcessor:
     
     def _format_answer(self, query: str, result: Any, interpretation: Dict[str, Any]) -> str:
         """Formatea la respuesta para el usuario."""
-        
+
         # Si hay error
         if isinstance(result, dict) and 'error' in result:
             return f"❌ Error ejecutando query: {result['error']}"
-        
+
+        # PRIORIDAD 0: Detectar queries de comparación de provincias
+        query_lower = query.lower()
+        is_comparison = any(word in query_lower for word in ['comparar', 'comparativa', 'vs', 'versus'])
+        is_province = any(word in query_lower for word in ['provincia', 'provincias', 'madrid', 'barcelona', 'valencia', 'sevilla'])
+
+        if is_comparison and is_province:
+            return self._format_province_comparison(query, result, interpretation)
+
         # PRIORIDAD 1: Si tenemos resultados de MongoDB, formatearlos
         if isinstance(result, list) and len(result) > 0:
             return self._format_results_list(query, result, interpretation)
@@ -541,6 +549,363 @@ Sé claro y conciso. Si no estás seguro, di qué necesitas aclarar.
 Genera una respuesta útil y accionable.
 """
     
+    def _format_province_comparison(self, query: str, result: Any, interpretation: Dict[str, Any]) -> str:
+        """
+        Formatea una comparación de provincias en formato tabla.
+        Detecta si es comparativa absoluta o media por farmacia.
+
+        Args:
+            query: Query del usuario
+            result: Resultado de MongoDB
+            interpretation: Interpretación de GPT
+
+        Returns:
+            Respuesta formateada con tabla comparativa
+        """
+        import re
+
+        query_lower = query.lower()
+
+        # Detectar tipo de comparativa: absoluta o media
+        is_average = any(word in query_lower for word in ['media', 'promedio', 'average', 'por farmacia'])
+        comparison_type = 'average' if is_average else 'absolute'
+
+        # Extraer nombres de provincias de la query
+        provinces = []
+        common_provinces = [
+            'madrid', 'barcelona', 'valencia', 'sevilla', 'zaragoza', 'malaga',
+            'murcia', 'palma', 'bilbao', 'alicante', 'cordoba', 'valladolid',
+            'vigo', 'gijon', 'hospitalet', 'vitoria', 'granada', 'elche',
+            'oviedo', 'terrassa', 'badalona', 'cartagena', 'jerez', 'sabadell',
+            'castellon', 'toledo', 'cadiz', 'tarragona', 'almeria', 'leon',
+            'salamanca', 'burgos', 'albacete', 'santander', 'huelva', 'logroño',
+            'badajoz', 'guadalajara', 'pamplona', 'san sebastian', 'la coruña',
+            'pontevedra', 'lugo', 'orense', 'huesca', 'teruel', 'soria', 'avila',
+            'segovia', 'palencia', 'zamora', 'cuenca', 'ciudad real', 'jaen',
+            'caceres', 'lleida', 'girona'
+        ]
+
+        for prov in common_provinces:
+            if prov in query_lower:
+                provinces.append(prov.capitalize())
+
+        if len(provinces) < 2:
+            provinces = ['Provincia 1', 'Provincia 2']
+        provincia_1 = provinces[0]
+        provincia_2 = provinces[1] if len(provinces) > 1 else 'Provincia 2'
+
+        # Detectar período
+        periodo = "este mes"
+        if 'semana' in query_lower:
+            periodo = "esta semana"
+        elif 'año' in query_lower:
+            periodo = "este año"
+        elif 'hoy' in query_lower:
+            periodo = "hoy"
+
+        # Detectar partner (por defecto todos los partners de delivery)
+        partner = self._detect_partner_from_query(query_lower)
+
+        # Ejecutar queries para cada provincia
+        metrics_1 = self._get_province_metrics(provincia_1, periodo, partner, comparison_type)
+        metrics_2 = self._get_province_metrics(provincia_2, periodo, partner, comparison_type)
+
+        # Funciones de formateo
+        def calc_diff(val1, val2):
+            if val2 == 0:
+                return 0 if val1 == 0 else 100
+            return ((val1 - val2) / val2) * 100
+
+        def format_diff(diff):
+            if diff >= 0:
+                return f"+{diff:.1f}%"
+            return f"{diff:.1f}%"
+
+        def format_number(num):
+            if isinstance(num, float):
+                return f"{num:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            return f"{num:,}".replace(",", ".")
+
+        def format_currency(num):
+            return f"{format_number(num)} EUR"
+
+        # Calcular diferencias
+        diff_farmacias = calc_diff(metrics_1['farmacias_activas'], metrics_2['farmacias_activas'])
+        diff_gmv = calc_diff(metrics_1['gmv'], metrics_2['gmv'])
+        diff_pedidos = calc_diff(metrics_1['pedidos'], metrics_2['pedidos'])
+        diff_cancelados = calc_diff(metrics_1['pedidos_cancelados'], metrics_2['pedidos_cancelados'])
+        diff_pct_cancel = metrics_1['porcentaje_cancelacion'] - metrics_2['porcentaje_cancelacion']
+        diff_gmv_cancel = calc_diff(metrics_1['gmv_cancelado'], metrics_2['gmv_cancelado'])
+        diff_ticket = calc_diff(metrics_1['ticket_medio'], metrics_2['ticket_medio'])
+
+        # Construir título según tipo
+        if comparison_type == 'average':
+            title = f"📊 **Comparativa Media por Farmacia: {provincia_1} vs {provincia_2}**"
+            subtitle = f"Partner: {partner.upper()} | Período: {periodo}"
+            gmv_label = "GMV medio/farmacia"
+            pedidos_label = "Pedidos medio/farmacia"
+            cancelados_label = "Cancelados medio/farmacia"
+            gmv_cancel_label = "GMV cancelado medio/farmacia"
+        else:
+            title = f"📊 **Comparativa Absoluta: {provincia_1} vs {provincia_2}**"
+            subtitle = f"Partner: {partner.upper()} | Período: {periodo}"
+            gmv_label = "GMV total"
+            pedidos_label = "Pedidos totales"
+            cancelados_label = "Pedidos cancelados"
+            gmv_cancel_label = "GMV cancelado"
+
+        answer = f"{title}\n{subtitle}\n\n"
+
+        # Tabla en formato GFM
+        answer += f"| Métrica | {provincia_1} | {provincia_2} | Diferencia |\n"
+        answer += "|---|---|---|---|\n"
+        answer += f"| Farmacias activas | {format_number(metrics_1['farmacias_activas'])} | {format_number(metrics_2['farmacias_activas'])} | {format_diff(diff_farmacias)} |\n"
+        answer += f"| {gmv_label} | {format_currency(metrics_1['gmv'])} | {format_currency(metrics_2['gmv'])} | {format_diff(diff_gmv)} |\n"
+        answer += f"| {pedidos_label} | {format_number(metrics_1['pedidos'])} | {format_number(metrics_2['pedidos'])} | {format_diff(diff_pedidos)} |\n"
+        answer += f"| {cancelados_label} | {format_number(metrics_1['pedidos_cancelados'])} | {format_number(metrics_2['pedidos_cancelados'])} | {format_diff(diff_cancelados)} |\n"
+        answer += f"| % Cancelacion | {metrics_1['porcentaje_cancelacion']:.2f}% | {metrics_2['porcentaje_cancelacion']:.2f}% | {diff_pct_cancel:+.2f}pp |\n"
+        answer += f"| {gmv_cancel_label} | {format_currency(metrics_1['gmv_cancelado'])} | {format_currency(metrics_2['gmv_cancelado'])} | {format_diff(diff_gmv_cancel)} |\n"
+        answer += f"| Ticket medio | {format_currency(metrics_1['ticket_medio'])} | {format_currency(metrics_2['ticket_medio'])} | {format_diff(diff_ticket)} |\n"
+
+        answer += "\n*Fuente: Luda Mind - MongoDB*"
+
+        return answer
+
+    def _detect_partner_from_query(self, query_lower: str) -> str:
+        """Detecta el partner mencionado en la query."""
+        partners = ['glovo', 'uber', 'justeat', 'amazon', 'carrefour', 'danone', 'procter', 'enna', 'nordic', 'chiesi', 'ferrer']
+        for p in partners:
+            if p in query_lower:
+                return p
+        # Por defecto, usar todos los partners de delivery
+        return 'all_delivery'
+
+    def _get_province_metrics(self, province: str, periodo: str, partner: str, comparison_type: str) -> dict:
+        """
+        Obtiene las métricas para una provincia y partner específicos.
+
+        Args:
+            province: Nombre de la provincia
+            periodo: Período temporal
+            partner: Partner a filtrar (o 'all_delivery' para todos)
+            comparison_type: 'absolute' o 'average'
+
+        Returns:
+            Dict con las métricas (absolutas o medias según tipo)
+        """
+        from datetime import datetime, timedelta
+
+        # Calcular fecha de inicio según período
+        now = datetime.now()
+        if 'semana' in periodo.lower():
+            start_date = now - timedelta(days=7)
+        elif 'año' in periodo.lower():
+            start_date = now - timedelta(days=365)
+        elif 'hoy' in periodo.lower():
+            start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        else:  # este mes
+            start_date = now - timedelta(days=30)
+
+        try:
+            # Partners con tags en pharmacies vs sin tags
+            partners_with_tags = ['glovo', 'glovo-otc', 'amazon', 'carrefour', 'danone', 'procter', 'enna', 'nordic', 'chiesi', 'ferrer']
+            partners_without_tags = ['uber', 'justeat']
+            delivery_partners = ['glovo', 'uber', 'justeat']
+
+            # Determinar qué partners usar
+            if partner == 'all_delivery':
+                target_partners = delivery_partners
+            else:
+                target_partners = [partner]
+
+            # 1. Obtener farmacias activas por provincia y partner
+            farmacias_activas = 0
+            pharmacy_id_list = []
+
+            for p in target_partners:
+                if p in partners_with_tags:
+                    # Buscar por tags en pharmacies
+                    tag_patterns = [f'{p.upper()}', f'{p.upper()}_2H', f'{p.upper()}_48H']
+                    pharmacies = list(self.db.pharmacies.find({
+                        'active': 1,
+                        'contact.province': {'$regex': province, '$options': 'i'},
+                        'tags': {'$in': tag_patterns}
+                    }, {'_id': 1}))
+                    pharmacy_id_list.extend([str(ph['_id']) for ph in pharmacies])
+                else:
+                    # Para uber/justeat: farmacias con pedidos en el período
+                    pipeline_farmacias = [
+                        {
+                            '$match': {
+                                'thirdUser.user': {'$regex': f'^{p}$', '$options': 'i'},
+                                'createdDate': {'$gte': start_date},
+                                'origin': {'$exists': False}  # Excluir shortages
+                            }
+                        },
+                        {'$group': {'_id': '$target'}}
+                    ]
+                    farmacias_partner = list(self.db.bookings.aggregate(pipeline_farmacias))
+                    target_ids = [f['_id'] for f in farmacias_partner if f['_id']]
+
+                    # Filtrar solo las de la provincia
+                    if target_ids:
+                        pharmacies = list(self.db.pharmacies.find({
+                            '_id': {'$in': [self._to_objectid(tid) for tid in target_ids if tid]},
+                            'contact.province': {'$regex': province, '$options': 'i'}
+                        }, {'_id': 1}))
+                        pharmacy_id_list.extend([str(ph['_id']) for ph in pharmacies])
+
+            # Eliminar duplicados
+            pharmacy_id_list = list(set(pharmacy_id_list))
+            farmacias_activas = len(pharmacy_id_list)
+
+            if farmacias_activas == 0:
+                return self._empty_metrics()
+
+            # 2. Construir match para bookings
+            if partner == 'all_delivery':
+                partner_match = {'$regex': f'^({"|".join(delivery_partners)})$', '$options': 'i'}
+            else:
+                partner_match = {'$regex': f'^{partner}$', '$options': 'i'}
+
+            # 3. Pipeline para métricas de pedidos
+            pipeline = [
+                {
+                    '$match': {
+                        'target': {'$in': pharmacy_id_list},
+                        'thirdUser.user': partner_match,
+                        'createdDate': {'$gte': start_date},
+                        'origin': {'$exists': False}  # Excluir shortages
+                    }
+                },
+                {
+                    '$group': {
+                        '_id': None,
+                        'pedidos_totales': {'$sum': 1},
+                        'pedidos_cancelados': {
+                            '$sum': {
+                                '$cond': [
+                                    {'$eq': ['$state', '5a54c525b2948c860f00000d']},
+                                    1,
+                                    0
+                                ]
+                            }
+                        },
+                        'gmv_total': {
+                            '$sum': {
+                                '$reduce': {
+                                    'input': {'$ifNull': ['$items', []]},
+                                    'initialValue': 0,
+                                    'in': {
+                                        '$add': [
+                                            '$$value',
+                                            {
+                                                '$multiply': [
+                                                    {'$toDouble': {'$ifNull': ['$$this.pvp', 0]}},
+                                                    {'$toInt': {'$ifNull': ['$$this.quantity', 0]}}
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        'gmv_cancelado': {
+                            '$sum': {
+                                '$cond': [
+                                    {'$eq': ['$state', '5a54c525b2948c860f00000d']},
+                                    {
+                                        '$reduce': {
+                                            'input': {'$ifNull': ['$items', []]},
+                                            'initialValue': 0,
+                                            'in': {
+                                                '$add': [
+                                                    '$$value',
+                                                    {
+                                                        '$multiply': [
+                                                            {'$toDouble': {'$ifNull': ['$$this.pvp', 0]}},
+                                                            {'$toInt': {'$ifNull': ['$$this.quantity', 0]}}
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    0
+                                ]
+                            }
+                        }
+                    }
+                }
+            ]
+
+            result = list(self.db.bookings.aggregate(pipeline))
+
+            if result and len(result) > 0:
+                data = result[0]
+                pedidos_totales = data.get('pedidos_totales', 0)
+                pedidos_cancelados = data.get('pedidos_cancelados', 0)
+                gmv_total = data.get('gmv_total', 0)
+                gmv_cancelado = data.get('gmv_cancelado', 0)
+
+                porcentaje_cancelacion = (pedidos_cancelados / pedidos_totales * 100) if pedidos_totales > 0 else 0
+                ticket_medio = (gmv_total / pedidos_totales) if pedidos_totales > 0 else 0
+            else:
+                pedidos_totales = 0
+                pedidos_cancelados = 0
+                gmv_total = 0
+                gmv_cancelado = 0
+                porcentaje_cancelacion = 0
+                ticket_medio = 0
+
+            # 4. Aplicar tipo de comparativa
+            if comparison_type == 'average' and farmacias_activas > 0:
+                return {
+                    'farmacias_activas': farmacias_activas,
+                    'gmv': gmv_total / farmacias_activas,
+                    'pedidos': pedidos_totales / farmacias_activas,
+                    'pedidos_cancelados': pedidos_cancelados / farmacias_activas,
+                    'porcentaje_cancelacion': porcentaje_cancelacion,  # % es igual
+                    'gmv_cancelado': gmv_cancelado / farmacias_activas,
+                    'ticket_medio': ticket_medio  # Ticket medio es igual
+                }
+            else:
+                return {
+                    'farmacias_activas': farmacias_activas,
+                    'gmv': gmv_total,
+                    'pedidos': pedidos_totales,
+                    'pedidos_cancelados': pedidos_cancelados,
+                    'porcentaje_cancelacion': porcentaje_cancelacion,
+                    'gmv_cancelado': gmv_cancelado,
+                    'ticket_medio': ticket_medio
+                }
+
+        except Exception as e:
+            print(f"Error obteniendo métricas para {province}/{partner}: {e}")
+            import traceback
+            traceback.print_exc()
+            return self._empty_metrics()
+
+    def _empty_metrics(self) -> dict:
+        """Retorna métricas vacías."""
+        return {
+            'farmacias_activas': 0,
+            'gmv': 0,
+            'pedidos': 0,
+            'pedidos_cancelados': 0,
+            'porcentaje_cancelacion': 0,
+            'gmv_cancelado': 0,
+            'ticket_medio': 0
+        }
+
+    def _to_objectid(self, id_str: str):
+        """Convierte string a ObjectId si es válido."""
+        from bson import ObjectId
+        try:
+            return ObjectId(id_str)
+        except:
+            return id_str
+
     def _extract_entity_from_query(self, query: str) -> str:
         """
         Extrae la entidad principal de la query para mensajes genéricos.

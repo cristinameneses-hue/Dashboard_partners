@@ -4,15 +4,28 @@
  * Diseño fiel al original HTML con tema claro y acentos verdes
  */
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+} from 'recharts';
 import { useLudaMind } from '../hooks/useLudaMind';
 import {
   LUDA_MIND_MODES,
   QUERY_EXAMPLES,
+  QUERY_TEMPLATES,
+  PERIOD_LABELS,
+  PARTNER_LABELS,
+  PROVINCES,
+  buildQueryFromTemplate,
   type LudaMindMode,
   type LudaMindMessage,
   type HistoryEntry,
+  type PeriodOption,
+  type PartnerOption,
+  type QueryTemplate,
+  type QueryParams,
 } from '../types/ludaMind';
 
 // Estilos inline para mantener fidelidad con el diseño original
@@ -345,6 +358,164 @@ const styles = {
     gap: '0.5rem',
     transition: 'all 0.2s ease',
   },
+  // Query Builder styles
+  queryBuilder: {
+    background: 'white',
+    borderRadius: '12px',
+    padding: '1.5rem',
+    marginBottom: '1rem',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+    border: '1px solid #e1e8ed',
+  },
+  queryBuilderHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: '1rem',
+  },
+  queryBuilderTitle: {
+    fontSize: '1rem',
+    fontWeight: 600,
+    color: '#2c3e50',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+  },
+  queryBuilderToggle: {
+    padding: '0.4rem 0.8rem',
+    background: '#f8f9fa',
+    border: '1px solid #e1e8ed',
+    borderRadius: '6px',
+    fontSize: '0.8rem',
+    color: '#6c757d',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+  },
+  dropdownsRow: {
+    display: 'flex',
+    gap: '1rem',
+    flexWrap: 'wrap' as const,
+    marginBottom: '1rem',
+  },
+  dropdownGroup: {
+    flex: '1 1 200px',
+    minWidth: '150px',
+  },
+  dropdownLabel: {
+    fontSize: '0.75rem',
+    fontWeight: 600,
+    color: '#6c757d',
+    marginBottom: '0.4rem',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.5px',
+  },
+  dropdown: {
+    width: '100%',
+    padding: '0.6rem 0.8rem',
+    border: '2px solid #e1e8ed',
+    borderRadius: '8px',
+    fontSize: '0.9rem',
+    color: '#2c3e50',
+    background: 'white',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    appearance: 'none' as const,
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236c757d' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E")`,
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'right 0.8rem center',
+    paddingRight: '2.5rem',
+  },
+  searchableDropdown: {
+    position: 'relative' as const,
+  },
+  searchInput: {
+    width: '100%',
+    padding: '0.6rem 0.8rem',
+    border: '2px solid #e1e8ed',
+    borderRadius: '8px',
+    fontSize: '0.9rem',
+    color: '#2c3e50',
+    background: 'white',
+    transition: 'all 0.2s ease',
+  },
+  dropdownOptions: {
+    position: 'absolute' as const,
+    top: '100%',
+    left: 0,
+    right: 0,
+    maxHeight: '200px',
+    overflowY: 'auto' as const,
+    background: 'white',
+    border: '2px solid #41A837',
+    borderRadius: '8px',
+    marginTop: '4px',
+    zIndex: 1000,
+    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+  },
+  dropdownOption: {
+    padding: '0.6rem 0.8rem',
+    cursor: 'pointer',
+    fontSize: '0.9rem',
+    color: '#2c3e50',
+    transition: 'all 0.15s ease',
+    border: 'none',
+    background: 'none',
+    width: '100%',
+    textAlign: 'left' as const,
+  },
+  templatesList: {
+    marginTop: '1rem',
+    borderTop: '1px solid #e1e8ed',
+    paddingTop: '1rem',
+  },
+  templatesTitle: {
+    fontSize: '0.8rem',
+    fontWeight: 600,
+    color: '#6c757d',
+    marginBottom: '0.8rem',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.5px',
+  },
+  templateButton: {
+    width: '100%',
+    padding: '0.8rem 1rem',
+    marginBottom: '0.5rem',
+    background: '#f8f9fa',
+    border: '2px solid transparent',
+    borderRadius: '8px',
+    fontSize: '0.9rem',
+    color: '#495057',
+    cursor: 'pointer',
+    textAlign: 'left' as const,
+    transition: 'all 0.2s ease',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.8rem',
+  },
+  templateIcon: {
+    width: '32px',
+    height: '32px',
+    background: 'linear-gradient(135deg, #41A837 0%, #2e7a28 100%)',
+    borderRadius: '6px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: 'white',
+    fontSize: '0.9rem',
+    flexShrink: 0,
+  },
+  templateInfo: {
+    flex: 1,
+  },
+  templateLabel: {
+    fontWeight: 600,
+    marginBottom: '0.2rem',
+    color: '#2c3e50',
+  },
+  templateDescription: {
+    fontSize: '0.8rem',
+    color: '#6c757d',
+  },
 };
 
 // Componente para mensaje individual
@@ -393,35 +564,61 @@ function MessageBubble({ message }: { message: LudaMindMessage }) {
         <div style={bubbleStyle}>
           <div className={`luda-message-text ${isUser ? 'user' : ''}`}>
             <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
               components={{
                 table: ({ children }) => (
-                  <div style={{ overflowX: 'auto', margin: '0.5rem 0' }}>
+                  <div style={{
+                    overflowX: 'auto',
+                    margin: '1rem 0',
+                    borderRadius: '12px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                    border: '1px solid #e1e8ed',
+                  }}>
                     <table style={{
                       borderCollapse: 'collapse',
                       width: '100%',
-                      fontSize: '0.9rem'
+                      fontSize: '0.85rem',
+                      background: 'white',
                     }}>
                       {children}
                     </table>
                   </div>
                 ),
+                thead: ({ children }) => (
+                  <thead style={{
+                    background: 'linear-gradient(135deg, #41A837 0%, #2e7a28 100%)',
+                  }}>
+                    {children}
+                  </thead>
+                ),
                 th: ({ children }) => (
                   <th style={{
-                    border: '1px solid #e1e8ed',
-                    padding: '0.5rem',
+                    padding: '0.75rem 1rem',
                     textAlign: 'left',
-                    background: '#f8f9fa',
                     fontWeight: 600,
-                    color: isUser ? 'white' : '#41A837'
+                    color: 'white',
+                    fontSize: '0.8rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    borderBottom: '2px solid #2e7a28',
                   }}>
                     {children}
                   </th>
                 ),
+                tr: ({ children }) => (
+                  <tr style={{
+                    borderBottom: '1px solid #f0f0f0',
+                    transition: 'background 0.15s ease',
+                  }}>
+                    {children}
+                  </tr>
+                ),
                 td: ({ children }) => (
                   <td style={{
-                    border: '1px solid #e1e8ed',
-                    padding: '0.5rem',
-                    textAlign: 'left'
+                    padding: '0.75rem 1rem',
+                    textAlign: 'left',
+                    color: '#2c3e50',
+                    verticalAlign: 'middle',
                   }}>
                     {children}
                   </td>
@@ -531,6 +728,20 @@ function MessageBubble({ message }: { message: LudaMindMessage }) {
               )}
             </div>
           )}
+
+          {/* Grafica de comparativa - solo para mensajes del bot que contengan tablas comparativas */}
+          {!isUser && message.content.includes('|') && (message.content.toLowerCase().includes('metrica') || message.content.toLowerCase().includes('métrica')) && (() => {
+            const parsed = parseComparisonDataFromText(message.content);
+            if (parsed && parsed.data.length > 0) {
+              return (
+                <ComparisonChart
+                  data={parsed.data}
+                  title={`Comparativa ${parsed.provinces[0]} vs ${parsed.provinces[1]}`}
+                />
+              );
+            }
+            return null;
+          })()}
         </div>
       </div>
       {isUser && <div style={avatarStyle}>👤</div>}
@@ -581,6 +792,480 @@ function TypingIndicator() {
   );
 }
 
+// Interface para datos de grafica de comparativas
+interface ComparisonChartData {
+  metric: string;
+  value1: number;
+  value2: number;
+  label1: string;
+  label2: string;
+}
+
+// Componente de grafica de barras para comparativas
+function ComparisonChart({ data, title }: { data: ComparisonChartData[], title: string }) {
+  if (!data || data.length === 0) return null;
+
+  const label1 = data[0]?.label1 || 'Provincia 1';
+  const label2 = data[0]?.label2 || 'Provincia 2';
+
+  return (
+    <div style={{
+      background: 'white',
+      borderRadius: '12px',
+      padding: '1.5rem',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+      border: '1px solid #e1e8ed',
+      marginTop: '1rem',
+    }}>
+      <div style={{
+        fontSize: '1rem',
+        fontWeight: 600,
+        color: '#2c3e50',
+        marginBottom: '1rem',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.5rem',
+      }}>
+        <span>📊</span>
+        <span>{title}</span>
+      </div>
+      <ResponsiveContainer width="100%" height={300}>
+        <BarChart
+          data={data}
+          margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" stroke="#e1e8ed" />
+          <XAxis
+            dataKey="metric"
+            tick={{ fontSize: 11, fill: '#6c757d' }}
+            angle={-35}
+            textAnchor="end"
+            height={80}
+          />
+          <YAxis tick={{ fontSize: 11, fill: '#6c757d' }} />
+          <Tooltip
+            contentStyle={{
+              background: 'white',
+              border: '1px solid #e1e8ed',
+              borderRadius: '8px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            }}
+            formatter={(value: number) => value.toLocaleString('es-ES')}
+          />
+          <Legend wrapperStyle={{ paddingTop: '10px' }} />
+          <Bar dataKey="value1" fill="#41A837" name={label1} radius={[4, 4, 0, 0]} />
+          <Bar dataKey="value2" fill="#2e7a28" name={label2} radius={[4, 4, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+// Funcion para parsear datos de comparativa desde el texto markdown
+function parseComparisonDataFromText(text: string): { data: ComparisonChartData[], provinces: [string, string] } | null {
+  const lines = text.split('\n');
+  const data: ComparisonChartData[] = [];
+  let provinces: [string, string] = ['Provincia 1', 'Provincia 2'];
+
+  // Buscar la fila de encabezado para extraer nombres de provincias
+  for (const line of lines) {
+    if (line.includes('|') && (line.toLowerCase().includes('metrica') || line.toLowerCase().includes('métrica'))) {
+      const parts = line.split('|').map(p => p.trim()).filter(p => p && !p.includes('-'));
+      if (parts.length >= 3) {
+        provinces = [parts[1], parts[2]];
+      }
+      break;
+    }
+  }
+
+  // Parsear filas de datos
+  for (const line of lines) {
+    if (!line.includes('|') || line.includes('---') || line.toLowerCase().includes('metrica') || line.toLowerCase().includes('métrica')) {
+      continue;
+    }
+
+    const parts = line.split('|').map(p => p.trim()).filter(p => p);
+    if (parts.length >= 3) {
+      const metric = parts[0];
+      const val1Str = parts[1];
+      const val2Str = parts[2];
+
+      // Extraer numeros de las celdas (quitar EUR, %, etc)
+      const extractNumber = (str: string): number => {
+        const cleaned = str.replace(/[^\d.,]/g, '').replace(/\./g, '').replace(',', '.');
+        return parseFloat(cleaned) || 0;
+      };
+
+      const val1 = extractNumber(val1Str);
+      const val2 = extractNumber(val2Str);
+
+      // Solo incluir si ambos valores son numeros validos
+      if (!isNaN(val1) && !isNaN(val2) && (val1 > 0 || val2 > 0)) {
+        data.push({
+          metric,
+          value1: val1,
+          value2: val2,
+          label1: provinces[0],
+          label2: provinces[1],
+        });
+      }
+    }
+  }
+
+  if (data.length === 0) return null;
+  return { data, provinces };
+}
+
+// Componente SearchableDropdown para provincias
+interface SearchableDropdownProps {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+  placeholder?: string;
+}
+
+function SearchableDropdown({ label, value, options, onChange, placeholder = 'Buscar...' }: SearchableDropdownProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const filteredOptions = useMemo(() => {
+    if (!search) return options;
+    return options.filter(opt =>
+      opt.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [options, search]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div style={styles.dropdownGroup}>
+      <div style={styles.dropdownLabel}>{label}</div>
+      <div style={styles.searchableDropdown} ref={dropdownRef}>
+        <input
+          type="text"
+          value={isOpen ? search : value}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            if (!isOpen) setIsOpen(true);
+          }}
+          onFocus={() => {
+            setIsOpen(true);
+            setSearch('');
+          }}
+          placeholder={value || placeholder}
+          style={{
+            ...styles.searchInput,
+            borderColor: isOpen ? '#41A837' : '#e1e8ed',
+          }}
+        />
+        {isOpen && (
+          <div style={styles.dropdownOptions}>
+            {filteredOptions.length === 0 ? (
+              <div style={{ ...styles.dropdownOption, color: '#999' }}>
+                No se encontraron resultados
+              </div>
+            ) : (
+              filteredOptions.slice(0, 20).map((opt) => (
+                <button
+                  key={opt}
+                  onClick={() => {
+                    onChange(opt);
+                    setIsOpen(false);
+                    setSearch('');
+                  }}
+                  style={{
+                    ...styles.dropdownOption,
+                    background: opt === value ? '#e8f5e6' : 'transparent',
+                    fontWeight: opt === value ? 600 : 400,
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = '#f0f9ef'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = opt === value ? '#e8f5e6' : 'transparent'}
+                >
+                  {opt}
+                </button>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Componente QueryBuilder
+interface QueryBuilderProps {
+  mode: LudaMindMode;
+  onSubmitQuery: (query: string) => void;
+  loading: boolean;
+}
+
+function QueryBuilder({ mode, onSubmitQuery, loading }: QueryBuilderProps) {
+  const [isExpanded, setIsExpanded] = useState(true);
+  const [params, setParams] = useState<QueryParams>({
+    period: 'this_month',
+    partner: 'all',
+    province1: '',
+    province2: '',
+  });
+  const [hoveredTemplate, setHoveredTemplate] = useState<string | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<QueryTemplate | null>(null);
+
+  // Filtrar templates por modo actual
+  const modeTemplates = useMemo(() =>
+    QUERY_TEMPLATES.filter(t => t.category === mode),
+    [mode]
+  );
+
+  // Reset template seleccionado cuando cambia el modo
+  useEffect(() => {
+    setSelectedTemplate(null);
+  }, [mode]);
+
+  // Al hacer clic en template, solo lo selecciona (no envía)
+  const handleTemplateClick = (template: QueryTemplate) => {
+    setSelectedTemplate(template);
+  };
+
+  // Construir la query actual basada en template + params
+  const currentQuery = useMemo(() => {
+    if (!selectedTemplate) return '';
+    return buildQueryFromTemplate(selectedTemplate, params);
+  }, [selectedTemplate, params]);
+
+  // Enviar la query
+  const handleSubmit = () => {
+    if (!selectedTemplate) {
+      alert('Por favor selecciona una consulta');
+      return;
+    }
+
+    // Verificar params necesarios
+    const missingParams: string[] = [];
+    if (selectedTemplate.params.includes('province1') && !params.province1) {
+      missingParams.push('Provincia 1');
+    }
+    if (selectedTemplate.params.includes('province2') && !params.province2) {
+      missingParams.push('Provincia 2');
+    }
+
+    if (missingParams.length > 0) {
+      alert(`Por favor selecciona: ${missingParams.join(', ')}`);
+      return;
+    }
+
+    onSubmitQuery(currentQuery);
+  };
+
+  if (modeTemplates.length === 0) {
+    return null;
+  }
+
+  return (
+    <div style={styles.queryBuilder}>
+      <div style={styles.queryBuilderHeader}>
+        <div style={styles.queryBuilderTitle}>
+          <span>🔧</span>
+          <span>Constructor de Consultas</span>
+        </div>
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          style={styles.queryBuilderToggle}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = '#e8f5e6';
+            e.currentTarget.style.borderColor = '#41A837';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = '#f8f9fa';
+            e.currentTarget.style.borderColor = '#e1e8ed';
+          }}
+        >
+          {isExpanded ? 'Ocultar' : 'Mostrar'}
+        </button>
+      </div>
+
+      {isExpanded && (
+        <>
+          {/* Templates de queries - PRIMERO para seleccionar que filtros mostrar */}
+          <div style={styles.templatesList}>
+            <div style={styles.templatesTitle}>Selecciona una consulta</div>
+            {modeTemplates.map((template) => {
+              const isSelected = selectedTemplate?.id === template.id;
+              const isHovered = hoveredTemplate === template.id;
+              return (
+                <button
+                  key={template.id}
+                  onClick={() => handleTemplateClick(template)}
+                  onMouseEnter={() => setHoveredTemplate(template.id)}
+                  onMouseLeave={() => setHoveredTemplate(null)}
+                  disabled={loading}
+                  style={{
+                    ...styles.templateButton,
+                    borderColor: isSelected ? '#41A837' : isHovered ? '#41A837' : 'transparent',
+                    background: isSelected ? '#e8f5e6' : 'transparent',
+                    transform: isHovered ? 'translateX(5px)' : 'none',
+                    opacity: loading ? 0.6 : 1,
+                  }}
+                >
+                  <div style={styles.templateIcon}>
+                    {isSelected ? '✓' : template.id.includes('province') ? '🗺️' : '📊'}
+                  </div>
+                  <div style={styles.templateInfo}>
+                    <div style={styles.templateLabel}>{template.label}</div>
+                    <div style={styles.templateDescription}>{template.description}</div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Dropdowns de parametros - Solo se muestran los necesarios segun el template */}
+          {selectedTemplate && (
+            <div style={{
+              ...styles.dropdownsRow,
+              marginTop: '1rem',
+              padding: '1rem',
+              background: '#f8f9fa',
+              borderRadius: '8px',
+              border: '1px solid #e1e8ed',
+            }}>
+              <div style={{ width: '100%', marginBottom: '0.75rem', fontSize: '0.85rem', color: '#6c757d', fontWeight: 500 }}>
+                Configura los parametros:
+              </div>
+
+              {/* Periodo - siempre visible si el template lo requiere */}
+              {selectedTemplate.params.includes('period') && (
+                <div style={styles.dropdownGroup}>
+                  <div style={styles.dropdownLabel}>Periodo</div>
+                  <select
+                    value={params.period}
+                    onChange={(e) => setParams({ ...params, period: e.target.value as PeriodOption })}
+                    style={styles.dropdown}
+                  >
+                    {(Object.keys(PERIOD_LABELS) as PeriodOption[])
+                      .filter(k => k !== 'custom')
+                      .map((key) => (
+                        <option key={key} value={key}>{PERIOD_LABELS[key]}</option>
+                      ))
+                    }
+                  </select>
+                </div>
+              )}
+
+              {/* Partner - solo si el template lo requiere */}
+              {selectedTemplate.params.includes('partner') && (
+                <div style={styles.dropdownGroup}>
+                  <div style={styles.dropdownLabel}>Partner</div>
+                  <select
+                    value={params.partner}
+                    onChange={(e) => setParams({ ...params, partner: e.target.value as PartnerOption })}
+                    style={styles.dropdown}
+                  >
+                    {(Object.keys(PARTNER_LABELS) as PartnerOption[]).map((key) => (
+                      <option key={key} value={key}>{PARTNER_LABELS[key]}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Provincia 1 - solo si el template lo requiere */}
+              {selectedTemplate.params.includes('province1') && (
+                <SearchableDropdown
+                  label="Provincia 1"
+                  value={params.province1 || ''}
+                  options={PROVINCES}
+                  onChange={(v) => setParams({ ...params, province1: v })}
+                  placeholder="Seleccionar provincia..."
+                />
+              )}
+
+              {/* Provincia 2 - solo si el template lo requiere */}
+              {selectedTemplate.params.includes('province2') && (
+                <SearchableDropdown
+                  label="Provincia 2"
+                  value={params.province2 || ''}
+                  options={PROVINCES}
+                  onChange={(v) => setParams({ ...params, province2: v })}
+                  placeholder="Seleccionar provincia..."
+                />
+              )}
+            </div>
+          )}
+
+          {/* Preview de la query y boton enviar */}
+          {selectedTemplate && (
+            <div style={{
+              marginTop: '1rem',
+              padding: '1rem',
+              background: '#f8f9fa',
+              borderRadius: '8px',
+              border: '1px solid #e1e8ed',
+            }}>
+              <div style={{ fontSize: '0.8rem', color: '#6c757d', marginBottom: '0.5rem' }}>
+                Vista previa de la consulta:
+              </div>
+              <div style={{
+                padding: '0.75rem',
+                background: 'white',
+                borderRadius: '6px',
+                border: '1px solid #dee2e6',
+                fontSize: '0.9rem',
+                color: '#2c3e50',
+                lineHeight: 1.5,
+                marginBottom: '1rem',
+              }}>
+                {currentQuery || 'Selecciona los parametros necesarios...'}
+              </div>
+              <button
+                onClick={handleSubmit}
+                disabled={loading || !currentQuery}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1.5rem',
+                  background: loading || !currentQuery ? '#ccc' : '#41A837',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  cursor: loading || !currentQuery ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  if (!loading && currentQuery) {
+                    e.currentTarget.style.background = '#369830';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = loading || !currentQuery ? '#ccc' : '#41A837';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+              >
+                <span>📤</span>
+                <span>{loading ? 'Enviando...' : 'Enviar Consulta'}</span>
+              </button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 // Componente principal
 export default function LudaMind() {
   const {
@@ -597,35 +1282,16 @@ export default function LudaMind() {
   } = useLudaMind();
 
   const [input, setInput] = useState('');
-  const [showExamples, setShowExamples] = useState(false);
   const [hoveredMode, setHoveredMode] = useState<string | null>(null);
   const [hoveredHistory, setHoveredHistory] = useState<number | null>(null);
-  const [hoveredExample, setHoveredExample] = useState<number | null>(null);
   const [inputFocused, setInputFocused] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const examplesRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll al final de los mensajes
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  // Cerrar ejemplos al hacer click fuera
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (examplesRef.current && !examplesRef.current.contains(event.target as Node)) {
-        setShowExamples(false);
-      }
-    };
-
-    if (showExamples) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showExamples]);
 
   // Manejar envio de query
   const handleSubmit = (e: React.FormEvent) => {
@@ -633,15 +1299,7 @@ export default function LudaMind() {
     if (input.trim()) {
       sendQuery(input);
       setInput('');
-      setShowExamples(false);
     }
-  };
-
-  // Seleccionar ejemplo
-  const handleSelectExample = (example: string) => {
-    setInput(example);
-    setShowExamples(false);
-    inputRef.current?.focus();
   };
 
   // Cargar del historial
@@ -654,11 +1312,9 @@ export default function LudaMind() {
   // Cambiar modo
   const handleModeChange = (newMode: LudaMindMode) => {
     changeMode(newMode);
-    setShowExamples(true);
   };
 
   const currentModeConfig = LUDA_MIND_MODES.find(m => m.id === mode);
-  const examples = QUERY_EXAMPLES[mode] || [];
 
   return (
     <div style={styles.container}>
@@ -710,6 +1366,24 @@ export default function LudaMind() {
         }
         .luda-message-text.user a:hover {
           border-bottom-color: white;
+        }
+        /* Estilos profesionales para tablas */
+        .luda-message-text table tbody tr:nth-child(even) {
+          background-color: #f8faf8;
+        }
+        .luda-message-text table tbody tr:hover {
+          background-color: #e8f5e6;
+        }
+        .luda-message-text table td:first-child {
+          font-weight: 600;
+          color: #2c3e50;
+        }
+        .luda-message-text table td:last-child {
+          font-weight: 600;
+        }
+        /* Estilos para diferencias positivas/negativas */
+        .luda-message-text table td:last-child {
+          color: #41A837;
         }
       `}</style>
 
@@ -848,65 +1522,22 @@ export default function LudaMind() {
 
       {/* Chat Area */}
       <div style={styles.chatArea}>
-        {/* Examples Dropdown */}
-        {showExamples && (
-          <div ref={examplesRef} style={styles.examplesDropdown}>
-            <div style={styles.examplesHeader}>
-              <div style={styles.examplesTitle}>
-                <span>{currentModeConfig?.icon}</span>
-                <span>Ejemplos: {currentModeConfig?.label}</span>
-              </div>
-              <button
-                onClick={() => setShowExamples(false)}
-                onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-                onMouseLeave={(e) => e.currentTarget.style.opacity = '0.8'}
-                style={styles.closeExamples}
-              >
-                ✕
-              </button>
-            </div>
-            <div style={styles.examplesGrid}>
-              {examples.map((example, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handleSelectExample(example)}
-                  onMouseEnter={() => setHoveredExample(idx)}
-                  onMouseLeave={() => setHoveredExample(null)}
-                  style={{
-                    ...styles.exampleItem,
-                    ...(hoveredExample === idx ? {
-                      background: '#e8f5e6',
-                      transform: 'translateX(5px)'
-                    } : {}),
-                  }}
-                >
-                  <span style={styles.exampleNumber}>{idx + 1}</span>
-                  <span>{example}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Chat Header */}
         <div style={styles.chatHeader}>
           <div style={styles.chatTitle}>
             <span>🔍</span>
             <span>Realiza tu Consulta</span>
           </div>
-          <button
-            onClick={() => setShowExamples(!showExamples)}
+          <div
             style={{
               ...styles.modeIndicator,
               ...(mode === 'conversational' ? styles.modeIndicatorConversational : {}),
+              cursor: 'default',
             }}
           >
             <span>{currentModeConfig?.icon}</span>
             <span>Modo {currentModeConfig?.label}</span>
-            <span style={{ fontSize: '0.7rem', opacity: 0.8, marginLeft: '0.3rem' }}>
-              ▼ Ver ejemplos
-            </span>
-          </button>
+          </div>
           <button
             onClick={clearChat}
             onMouseEnter={(e) => {
@@ -924,6 +1555,9 @@ export default function LudaMind() {
           </button>
         </div>
 
+        {/* Query Builder - Se muestra en todos los modos que tengan templates */}
+        <QueryBuilder mode={mode} onSubmitQuery={sendQuery} loading={loading} />
+
         {/* Messages Area */}
         <div style={styles.messagesContainer}>
           {messages.length === 0 ? (
@@ -931,24 +1565,9 @@ export default function LudaMind() {
               <div style={styles.welcomeIcon}>🚀</div>
               <div style={styles.welcomeTitle}>¡Bienvenido a Luda Mind!</div>
               <div style={styles.welcomeText}>
-                Selecciona un modo de consulta para comenzar.<br />
-                Haz clic en el modo activo para ver ejemplos de consultas.
+                Selecciona un modo en el panel izquierdo y usa el constructor de consultas<br />
+                para configurar los parametros y ejecutar tu busqueda.
               </div>
-              <button
-                onClick={() => setShowExamples(true)}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(65, 168, 55, 0.3)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
-                style={styles.welcomeCta}
-              >
-                <span>💡</span>
-                <span>Ver ejemplos de consultas</span>
-              </button>
             </div>
           ) : (
             messages.map(message => (
