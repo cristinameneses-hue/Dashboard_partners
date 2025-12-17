@@ -106,8 +106,14 @@ function isPartnerAllowed(dataPartner: string, allowedPartners: string[]): boole
 }
 
 // Filter data to only include specified partners
+// If no partners specified, include ALL data (backend already filters)
 function filterPartners(data: any[], allowedPartners: string[]): any[] {
   if (!data || data.length === 0) return [];
+  
+  // If no specific partners selected, return all data from backend (already filtered)
+  if (!allowedPartners || allowedPartners.length === 0) {
+    return data;
+  }
   
   return data.map(point => {
     const filtered: any = { period: point.period };
@@ -228,24 +234,25 @@ export default function PartnerStackedChart({
     );
   }
 
-  // Determine which partners to show
-  // If selectedPartners is empty, show all partners from ALL_PARTNERS
-  // If selectedPartners has values, show only those
-  const partnersToShow = selectedPartners.length > 0 
-    ? selectedPartners 
-    : ALL_PARTNERS;
+  // Determine which partners to filter by
+  // If selectedPartners is empty, show ALL data from backend (already filtered by allowed partners)
+  // If selectedPartners has values, filter to only those
+  const partnersToFilter = selectedPartners.length > 0 ? selectedPartners : [];
 
-  // Filter data to only show allowed partners
-  const filteredData = filterPartners(data, partnersToShow);
+  // Filter data (empty array means show all from backend)
+  const filteredData = filterPartners(data, partnersToFilter);
   
   // Group by categories if needed
+  // When no filter selected, use ALL_PARTNERS to identify categories
+  const partnersForCategories = selectedPartners.length > 0 ? selectedPartners : ALL_PARTNERS;
   const processedData = viewMode === 'categories' 
-    ? groupByCategories(filteredData, partnersToShow)
+    ? groupByCategories(filteredData, partnersForCategories)
     : filteredData;
 
-  // Get unique keys (partners or categories) from data
+  // Get unique keys (partners or categories) from ALL periods, not just the first one
   const keys = processedData.length > 0 
-    ? Object.keys(processedData[0]).filter(k => k !== 'period' && processedData.some(d => (d[k] || 0) > 0))
+    ? [...new Set(processedData.flatMap(d => Object.keys(d)))]
+        .filter(k => k !== 'period' && k !== '_total' && processedData.some(d => (d[k] || 0) > 0))
     : [];
 
   // Transform data for percentage view and add totals
