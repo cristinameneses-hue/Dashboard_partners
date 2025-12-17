@@ -131,17 +131,24 @@ class BookingRepository:
         end_date: datetime
     ) -> List[Dict[str, Any]]:
         """
-        Get ecommerce metrics for all partners.
+        Get ecommerce metrics for allowed partners only.
+        Uses partner list from config settings.
         """
         cancelled_state = self._settings.cancelled_state_id
         
+        # Build partner regex conditions for allowed partners only
+        partner_conditions = [
+            {"thirdUser.user": {"$regex": f"^{p}$", "$options": "i"}}
+            for p in self._settings.partners
+        ]
+        
         pipeline = [
-            # Match all ecommerce bookings in date range
+            # Match only allowed partners in date range
             {
                 "$match": {
-                    "thirdUser.user": {"$exists": True},
                     "origin": {"$exists": False},
-                    "createdDate": {"$gte": start_date, "$lte": end_date}
+                    "createdDate": {"$gte": start_date, "$lte": end_date},
+                    "$or": partner_conditions
                 }
             },
             # Add computed fields
@@ -301,22 +308,21 @@ class BookingRepository:
             }
             sort_fields = {"_id.year": 1, "_id.month": 1}
         
-        # Build match stage
-        match_stage: Dict[str, Any] = {
-            "thirdUser.user": {"$exists": True},
-            "origin": {"$exists": False},
-            "createdDate": {"$gte": start_date, "$lte": end_date}
-        }
+        # Use provided partners or default to allowed partners from config
+        allowed_partners = partners if partners else self._settings.partners
         
-        # Filter by partners if specified - use $or with regex for case-insensitive matching
-        if partners and len(partners) > 0:
-            partner_conditions = [
-                {"thirdUser.user": {"$regex": f"^{p}$", "$options": "i"}} 
-                for p in partners
-            ]
-            match_stage["$or"] = partner_conditions
-            # Remove the simple thirdUser.user exists check since we're using $or
-            del match_stage["thirdUser.user"]
+        # Build partner regex conditions - always filter by allowed partners
+        partner_conditions = [
+            {"thirdUser.user": {"$regex": f"^{p}$", "$options": "i"}} 
+            for p in allowed_partners
+        ]
+        
+        # Build match stage with partner filter
+        match_stage: Dict[str, Any] = {
+            "origin": {"$exists": False},
+            "createdDate": {"$gte": start_date, "$lte": end_date},
+            "$or": partner_conditions
+        }
         
         pipeline = [
             {"$match": match_stage},
@@ -398,19 +404,30 @@ class BookingRepository:
     async def get_ecommerce_totals(
         self,
         start_date: datetime,
-        end_date: datetime
+        end_date: datetime,
+        partners: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """
-        Get total ecommerce metrics across all partners.
+        Get total ecommerce metrics. Filters by allowed partners from config by default.
         """
         cancelled_state = self._settings.cancelled_state_id
+        
+        # Use provided partners or default to allowed partners from config
+        allowed_partners = partners if partners else self._settings.partners
+        
+        # Build partner regex conditions
+        partner_conditions = [
+            {"thirdUser.user": {"$regex": f"^{p}$", "$options": "i"}}
+            for p in allowed_partners
+        ]
         
         pipeline = [
             {
                 "$match": {
                     "thirdUser.user": {"$exists": True},
                     "origin": {"$exists": False},
-                    "createdDate": {"$gte": start_date, "$lte": end_date}
+                    "createdDate": {"$gte": start_date, "$lte": end_date},
+                    "$or": partner_conditions
                 }
             },
             {
@@ -471,30 +488,30 @@ class BookingRepository:
     ) -> int:
         """
         Get total unique pharmacies that have received ecommerce orders.
-        If partners are provided, only count pharmacies that have orders from those partners.
+        Uses allowed partners from config by default.
         If dates are provided, only count pharmacies with orders in that period.
         """
+        # Use provided partners or default to allowed partners from config
+        allowed_partners = partners if partners else self._settings.partners
+        
+        # Build partner regex conditions
+        partner_conditions = [
+            {"thirdUser.user": {"$regex": f"^{p}$", "$options": "i"}}
+            for p in allowed_partners
+        ]
+        
         match_stage: Dict[str, Any] = {
-            "thirdUser.user": {"$exists": True},
             "origin": {"$exists": False},
-            "target": {"$exists": True}
+            "target": {"$exists": True},
+            "$or": partner_conditions
         }
         
         # Add date filter if provided
         if start_date and end_date:
-            match_stage["created"] = {
+            match_stage["createdDate"] = {
                 "$gte": start_date,
                 "$lte": end_date
             }
-        
-        # Add partner filter if provided
-        if partners and len(partners) > 0:
-            partner_conditions = []
-            for partner in partners:
-                partner_conditions.append({
-                    "thirdUser.user": {"$regex": partner, "$options": "i"}
-                })
-            match_stage["$or"] = partner_conditions
         
         pipeline = [
             {"$match": match_stage},
@@ -513,13 +530,24 @@ class BookingRepository:
         self,
         start_date: datetime,
         end_date: datetime,
-        group_by: str = "month"
+        group_by: str = "month",
+        partners: Optional[List[str]] = None
     ) -> List[Dict[str, Any]]:
         """
         Get ecommerce metrics grouped by time period and partner.
         Returns data for stacked charts showing partner contributions.
+        Filters by allowed partners from config by default.
         """
         cancelled_state = self._settings.cancelled_state_id
+        
+        # Use provided partners or default to allowed partners from config
+        allowed_partners = partners if partners else self._settings.partners
+        
+        # Build partner regex conditions
+        partner_conditions = [
+            {"thirdUser.user": {"$regex": f"^{p}$", "$options": "i"}}
+            for p in allowed_partners
+        ]
         
         # Define date grouping based on group_by parameter
         if group_by == "week":
@@ -553,7 +581,8 @@ class BookingRepository:
                 "$match": {
                     "thirdUser.user": {"$exists": True},
                     "origin": {"$exists": False},
-                    "createdDate": {"$gte": start_date, "$lte": end_date}
+                    "createdDate": {"$gte": start_date, "$lte": end_date},
+                    "$or": partner_conditions
                 }
             },
             {
