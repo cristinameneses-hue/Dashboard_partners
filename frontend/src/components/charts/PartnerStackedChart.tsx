@@ -30,15 +30,6 @@ const PARTNER_COLORS: Record<string, string> = {
   'ferrer': '#009688',
 };
 
-// Category colors - from PARTNER_CATEGORIES
-const CATEGORY_COLORS: Record<string, string> = {
-  'um': '#f59e0b',
-  'marketplaces': '#0ea5e9',
-  'retail': '#10b981',
-  'otc': '#8b5cf6',
-  'labs': '#ec4899',
-};
-
 // Get color for a partner
 function getPartnerColor(partner: string, index: number): string {
   const key = partner.toLowerCase();
@@ -53,12 +44,6 @@ function getPartnerColor(partner: string, index: number): string {
   return fallbackColors[index % fallbackColors.length];
 }
 
-// Get color for a category
-function getCategoryColor(category: string): string {
-  const key = category.toLowerCase();
-  return CATEGORY_COLORS[key] || '#94A3B8';
-}
-
 export type ViewMode = 'partners' | 'categories';
 
 interface PartnerStackedChartProps {
@@ -67,6 +52,7 @@ interface PartnerStackedChartProps {
   type: 'orders' | 'gmv';
   isPercentage?: boolean;
   viewMode?: ViewMode;
+  selectedPartners?: string[]; // Partners selected in the main filter
 }
 
 // Format numbers with thousands separator
@@ -100,22 +86,31 @@ function formatCurrency(num: number): string {
   }).format(Math.round(num));
 }
 
-// Filter data to only include allowed partners
-function filterAllowedPartners(data: any[]): any[] {
+// Normalize partner name for comparison
+function normalizePartnerName(name: string): string {
+  return name.toLowerCase().replace(/[-_\s]/g, '');
+}
+
+// Check if a partner from data matches any in the allowed list
+function isPartnerAllowed(dataPartner: string, allowedPartners: string[]): boolean {
+  const normalizedData = normalizePartnerName(dataPartner);
+  return allowedPartners.some(allowed => {
+    const normalizedAllowed = normalizePartnerName(allowed);
+    return normalizedData === normalizedAllowed || 
+           normalizedData.includes(normalizedAllowed) ||
+           normalizedAllowed.includes(normalizedData);
+  });
+}
+
+// Filter data to only include specified partners
+function filterPartners(data: any[], allowedPartners: string[]): any[] {
   if (!data || data.length === 0) return [];
-  
-  const allowedPartners = ALL_PARTNERS.map(p => p.toLowerCase());
   
   return data.map(point => {
     const filtered: any = { period: point.period };
     Object.keys(point).forEach(key => {
       if (key === 'period') return;
-      // Check if this partner is in our allowed list (case-insensitive)
-      const isAllowed = allowedPartners.some(allowed => 
-        key.toLowerCase() === allowed || 
-        key.toLowerCase().replace('-', '') === allowed.replace('-', '')
-      );
-      if (isAllowed) {
+      if (isPartnerAllowed(key, allowedPartners)) {
         filtered[key] = point[key];
       }
     });
@@ -123,15 +118,23 @@ function filterAllowedPartners(data: any[]): any[] {
   });
 }
 
-// Group data by categories
-function groupByCategories(data: any[]): any[] {
+// Group data by categories (only for categories that have data)
+function groupByCategories(data: any[], allowedPartners: string[]): any[] {
   if (!data || data.length === 0) return [];
+  
+  // Get categories that have at least one allowed partner
+  const relevantCategories = PARTNER_CATEGORIES.filter(cat => {
+    if (cat.id === 'all') return false;
+    return cat.partners.some(p => 
+      allowedPartners.some(allowed => normalizePartnerName(p) === normalizePartnerName(allowed))
+    );
+  });
   
   return data.map(point => {
     const grouped: any = { period: point.period };
     
-    // Initialize category totals
-    PARTNER_CATEGORIES.filter(cat => cat.id !== 'all').forEach(cat => {
+    // Initialize only relevant category totals
+    relevantCategories.forEach(cat => {
       grouped[cat.name] = 0;
     });
     
@@ -139,7 +142,7 @@ function groupByCategories(data: any[]): any[] {
     Object.keys(point).forEach(key => {
       if (key === 'period') return;
       const category = getCategoryByPartner(key);
-      if (category) {
+      if (category && grouped.hasOwnProperty(category.name)) {
         grouped[category.name] = (grouped[category.name] || 0) + (point[key] || 0);
       }
     });
@@ -184,7 +187,8 @@ export default function PartnerStackedChart({
   title, 
   type, 
   isPercentage = false,
-  viewMode = 'partners'
+  viewMode = 'partners',
+  selectedPartners = []
 }: PartnerStackedChartProps) {
   if (!data || data.length === 0) {
     return (
@@ -199,12 +203,19 @@ export default function PartnerStackedChart({
     );
   }
 
-  // Filter to only show allowed partners
-  const filteredData = filterAllowedPartners(data);
+  // Determine which partners to show
+  // If selectedPartners is empty, show all partners from ALL_PARTNERS
+  // If selectedPartners has values, show only those
+  const partnersToShow = selectedPartners.length > 0 
+    ? selectedPartners 
+    : ALL_PARTNERS;
+
+  // Filter data to only show allowed partners
+  const filteredData = filterPartners(data, partnersToShow);
   
   // Group by categories if needed
   const processedData = viewMode === 'categories' 
-    ? groupByCategories(filteredData)
+    ? groupByCategories(filteredData, partnersToShow)
     : filteredData;
 
   // Get unique keys (partners or categories) from data

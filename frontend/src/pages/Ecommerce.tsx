@@ -593,6 +593,7 @@ export default function Ecommerce() {
               title={partnerViewMode === 'categories' ? 'Orders por Categoría' : 'Orders por Partner'}
               type="orders"
               viewMode={partnerViewMode}
+              selectedPartners={selectedPartners}
             />
           </ExpandableChart>
           <ExpandableChart 
@@ -605,6 +606,7 @@ export default function Ecommerce() {
               type="orders"
               isPercentage
               viewMode={partnerViewMode}
+              selectedPartners={selectedPartners}
             />
           </ExpandableChart>
           <ExpandableChart 
@@ -616,6 +618,7 @@ export default function Ecommerce() {
               title={partnerViewMode === 'categories' ? 'GMV por Categoría' : 'GMV por Partner'}
               type="gmv"
               viewMode={partnerViewMode}
+              selectedPartners={selectedPartners}
             />
           </ExpandableChart>
           <ExpandableChart 
@@ -628,6 +631,7 @@ export default function Ecommerce() {
               type="gmv"
               isPercentage
               viewMode={partnerViewMode}
+              selectedPartners={selectedPartners}
             />
           </ExpandableChart>
         </div>
