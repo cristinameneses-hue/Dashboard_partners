@@ -6,6 +6,8 @@ import {
   YAxis,
   Tooltip,
   Legend,
+  LabelList,
+  Cell,
 } from 'recharts';
 import { PARTNER_CATEGORIES, ALL_PARTNERS, getCategoryByPartner } from '../../types';
 
@@ -151,6 +153,28 @@ function groupByCategories(data: any[], allowedPartners: string[]): any[] {
   });
 }
 
+// Custom label for total on top of stacked bars
+function TotalLabel({ x, y, width, value, type }: any) {
+  if (!value || value === 0) return null;
+  
+  const formattedValue = type === 'gmv' 
+    ? formatCurrency(value) 
+    : formatNumber(value);
+  
+  return (
+    <text
+      x={x + width / 2}
+      y={y - 8}
+      textAnchor="middle"
+      fill="#374151"
+      fontSize={10}
+      fontWeight={600}
+    >
+      {formattedValue}
+    </text>
+  );
+}
+
 // Custom tooltip
 function CustomTooltip({ active, payload, label, type, isPercentage }: any) {
   if (!active || !payload?.length) return null;
@@ -223,7 +247,7 @@ export default function PartnerStackedChart({
     ? Object.keys(processedData[0]).filter(k => k !== 'period' && processedData.some(d => (d[k] || 0) > 0))
     : [];
 
-  // Transform data for percentage view
+  // Transform data for percentage view and add totals
   const chartData = isPercentage
     ? processedData.map(point => {
         const total = keys.reduce((sum, k) => sum + (point[k] || 0), 0);
@@ -233,7 +257,10 @@ export default function PartnerStackedChart({
         });
         return transformed;
       })
-    : processedData;
+    : processedData.map(point => {
+        const total = keys.reduce((sum, k) => sum + (point[k] || 0), 0);
+        return { ...point, _total: total };
+      });
 
   // Get color function based on view mode
   const getColor = viewMode === 'categories' 
@@ -285,7 +312,16 @@ export default function PartnerStackedChart({
                 stackId="stack"
                 fill={getColor(key, index)}
                 name={key}
-              />
+              >
+                {/* Show total label on the last bar of the stack (only for non-percentage charts) */}
+                {!isPercentage && index === keys.length - 1 && (
+                  <LabelList 
+                    dataKey="_total" 
+                    position="top" 
+                    content={(props: any) => <TotalLabel {...props} type={type} />}
+                  />
+                )}
+              </Bar>
             ))}
           </BarChart>
         </ResponsiveContainer>
