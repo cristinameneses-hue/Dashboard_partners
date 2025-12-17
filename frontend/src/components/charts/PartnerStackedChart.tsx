@@ -7,45 +7,37 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
+import { PARTNER_CATEGORIES, ALL_PARTNERS, getCategoryByPartner } from '../../types';
 
-// Extended partner colors palette - one unique color for each partner
+// Partner colors - matching the partners in PARTNER_CATEGORIES
 const PARTNER_COLORS: Record<string, string> = {
-  // Delivery partners
+  // UM (Delivery)
   'glovo': '#00C3A5',
-  'glovo otc': '#00A896',
   'uber': '#06C167',
-  'uber-eats': '#06C167',
   'justeat': '#FF8000',
-  'just-eat': '#FF8000',
-  // Retail & marketplaces
-  'carrefour': '#004E98',
+  // Marketplaces
   'amazon': '#FF9900',
-  'enna': '#E91E63',
+  // Retail
+  'carrefour': '#004E98',
+  // OTC
+  'glovo-otc': '#8B5CF6',
+  // Labs
   'danone': '#0073CF',
-  'nordic': '#5C6BC0',
-  'perfumesclub': '#9C27B0',
-  // Miravia partners
-  'trebol miravia-lc': '#F44336',
-  'nervion miravia-lc': '#E53935',
-  'pierre fabre-miravia': '#D32F2F',
-  'b58 miravia-lc': '#C62828',
-  // Pharmacies & labs
-  'ludaalmacen': '#00A651',
-  'luda-farma': '#00A651',
-  'ludafarma': '#00A651',
-  'retail': '#6366F1',
-  'labs': '#8B5CF6',
-  // Others
   'procter': '#1976D2',
-  'hartmann': '#00BCD4',
+  'enna': '#E91E63',
+  'nordic': '#5C6BC0',
+  'chiesi': '#00BCD4',
+  'ferrer': '#009688',
 };
 
-// Fallback color palette for unknown partners
-const FALLBACK_COLORS = [
-  '#3F51B5', '#009688', '#795548', '#607D8B', '#FF5722',
-  '#CDDC39', '#4CAF50', '#2196F3', '#673AB7', '#FFC107',
-  '#03A9F4', '#8BC34A', '#FF4081', '#00BFA5', '#7C4DFF'
-];
+// Category colors - from PARTNER_CATEGORIES
+const CATEGORY_COLORS: Record<string, string> = {
+  'um': '#f59e0b',
+  'marketplaces': '#0ea5e9',
+  'retail': '#10b981',
+  'otc': '#8b5cf6',
+  'labs': '#ec4899',
+};
 
 // Get color for a partner
 function getPartnerColor(partner: string, index: number): string {
@@ -53,15 +45,28 @@ function getPartnerColor(partner: string, index: number): string {
   if (PARTNER_COLORS[key]) {
     return PARTNER_COLORS[key];
   }
-  // Use fallback color based on index
-  return FALLBACK_COLORS[index % FALLBACK_COLORS.length];
+  // Fallback colors for unknown partners
+  const fallbackColors = [
+    '#3F51B5', '#009688', '#795548', '#607D8B', '#FF5722',
+    '#CDDC39', '#4CAF50', '#2196F3', '#673AB7', '#FFC107'
+  ];
+  return fallbackColors[index % fallbackColors.length];
 }
+
+// Get color for a category
+function getCategoryColor(category: string): string {
+  const key = category.toLowerCase();
+  return CATEGORY_COLORS[key] || '#94A3B8';
+}
+
+export type ViewMode = 'partners' | 'categories';
 
 interface PartnerStackedChartProps {
   data: any[];
   title: string;
   type: 'orders' | 'gmv';
   isPercentage?: boolean;
+  viewMode?: ViewMode;
 }
 
 // Format numbers with thousands separator
@@ -95,20 +100,71 @@ function formatCurrency(num: number): string {
   }).format(Math.round(num));
 }
 
+// Filter data to only include allowed partners
+function filterAllowedPartners(data: any[]): any[] {
+  if (!data || data.length === 0) return [];
+  
+  const allowedPartners = ALL_PARTNERS.map(p => p.toLowerCase());
+  
+  return data.map(point => {
+    const filtered: any = { period: point.period };
+    Object.keys(point).forEach(key => {
+      if (key === 'period') return;
+      // Check if this partner is in our allowed list (case-insensitive)
+      const isAllowed = allowedPartners.some(allowed => 
+        key.toLowerCase() === allowed || 
+        key.toLowerCase().replace('-', '') === allowed.replace('-', '')
+      );
+      if (isAllowed) {
+        filtered[key] = point[key];
+      }
+    });
+    return filtered;
+  });
+}
+
+// Group data by categories
+function groupByCategories(data: any[]): any[] {
+  if (!data || data.length === 0) return [];
+  
+  return data.map(point => {
+    const grouped: any = { period: point.period };
+    
+    // Initialize category totals
+    PARTNER_CATEGORIES.filter(cat => cat.id !== 'all').forEach(cat => {
+      grouped[cat.name] = 0;
+    });
+    
+    // Sum up values by category
+    Object.keys(point).forEach(key => {
+      if (key === 'period') return;
+      const category = getCategoryByPartner(key);
+      if (category) {
+        grouped[category.name] = (grouped[category.name] || 0) + (point[key] || 0);
+      }
+    });
+    
+    return grouped;
+  });
+}
+
 // Custom tooltip
 function CustomTooltip({ active, payload, label, type, isPercentage }: any) {
   if (!active || !payload?.length) return null;
 
+  // Sort payload by value descending
+  const sortedPayload = [...payload].sort((a, b) => (b.value || 0) - (a.value || 0));
+
   return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-sm">
+    <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-sm max-h-80 overflow-y-auto">
       <p className="font-semibold text-gray-800 mb-2">{label}</p>
-      {payload.map((entry: any, index: number) => (
+      {sortedPayload.map((entry: any, index: number) => (
         <div key={index} className="flex items-center gap-2 mb-1">
           <div 
-            className="w-3 h-3 rounded-sm"
+            className="w-3 h-3 rounded-sm flex-shrink-0"
             style={{ backgroundColor: entry.fill }}
           />
-          <span className="text-gray-600 capitalize">{entry.name.replace('-', ' ')}:</span>
+          <span className="text-gray-600 capitalize truncate max-w-[120px]">{entry.name.replace('-', ' ')}:</span>
           <span className="font-medium text-gray-800">
             {isPercentage 
               ? `${entry.value.toFixed(1)}%`
@@ -123,7 +179,13 @@ function CustomTooltip({ active, payload, label, type, isPercentage }: any) {
   );
 }
 
-export default function PartnerStackedChart({ data, title, type, isPercentage = false }: PartnerStackedChartProps) {
+export default function PartnerStackedChart({ 
+  data, 
+  title, 
+  type, 
+  isPercentage = false,
+  viewMode = 'partners'
+}: PartnerStackedChartProps) {
   if (!data || data.length === 0) {
     return (
       <div className="card">
@@ -137,20 +199,38 @@ export default function PartnerStackedChart({ data, title, type, isPercentage = 
     );
   }
 
-  // Get unique partners from data
-  const partners = data.length > 0 ? Object.keys(data[0]).filter(k => k !== 'period') : [];
+  // Filter to only show allowed partners
+  const filteredData = filterAllowedPartners(data);
+  
+  // Group by categories if needed
+  const processedData = viewMode === 'categories' 
+    ? groupByCategories(filteredData)
+    : filteredData;
+
+  // Get unique keys (partners or categories) from data
+  const keys = processedData.length > 0 
+    ? Object.keys(processedData[0]).filter(k => k !== 'period' && processedData.some(d => (d[k] || 0) > 0))
+    : [];
 
   // Transform data for percentage view
   const chartData = isPercentage
-    ? data.map(point => {
-        const total = partners.reduce((sum, p) => sum + (point[p] || 0), 0);
+    ? processedData.map(point => {
+        const total = keys.reduce((sum, k) => sum + (point[k] || 0), 0);
         const transformed: any = { period: point.period };
-        partners.forEach(p => {
-          transformed[p] = total > 0 ? ((point[p] || 0) / total) * 100 : 0;
+        keys.forEach(k => {
+          transformed[k] = total > 0 ? ((point[k] || 0) / total) * 100 : 0;
         });
         return transformed;
       })
-    : data;
+    : processedData;
+
+  // Get color function based on view mode
+  const getColor = viewMode === 'categories' 
+    ? (key: string, _index: number) => {
+        const category = PARTNER_CATEGORIES.find(cat => cat.name === key);
+        return category?.color || '#94A3B8';
+      }
+    : getPartnerColor;
 
   return (
     <div className="card">
@@ -187,13 +267,13 @@ export default function PartnerStackedChart({ data, title, type, isPercentage = 
                 <span className="text-xs text-gray-600 capitalize">{value.replace('-', ' ')}</span>
               )}
             />
-            {partners.map((partner, index) => (
+            {keys.map((key, index) => (
               <Bar
-                key={partner}
-                dataKey={partner}
+                key={key}
+                dataKey={key}
                 stackId="stack"
-                fill={getPartnerColor(partner, index)}
-                name={partner}
+                fill={getColor(key, index)}
+                name={key}
               />
             ))}
           </BarChart>
@@ -202,4 +282,3 @@ export default function PartnerStackedChart({ data, title, type, isPercentage = 
     </div>
   );
 }
-

@@ -8,10 +8,15 @@ import LineChartComponent from '../components/charts/LineChartComponent';
 import PharmacyComboChart from '../components/charts/PharmacyComboChart';
 import TimeSeriesTable from '../components/charts/TimeSeriesTable';
 import ExpandableChart from '../components/charts/ExpandableChart';
-import PartnerStackedChart from '../components/charts/PartnerStackedChart';
+import PartnerStackedChart, { ViewMode } from '../components/charts/PartnerStackedChart';
 import { useEcommerceMetrics, useTimeSeries, usePartnerTimeSeries, ChartGroupBy } from '../hooks/useEcommerce';
 import type { PeriodType, EcommerceMetrics } from '../types';
 import { PARTNER_CATEGORIES } from '../types';
+
+const VIEW_MODE_OPTIONS: { value: ViewMode; label: string }[] = [
+  { value: 'partners', label: 'Por Partner' },
+  { value: 'categories', label: 'Por Categoría' },
+];
 
 const columnHelper = createColumnHelper<EcommerceMetrics>();
 
@@ -71,6 +76,7 @@ export default function Ecommerce() {
   const [chartGroupBy, setChartGroupBy] = useState<ChartGroupBy>('month');
   const [tableGroupBy, setTableGroupBy] = useState<ChartGroupBy>('month');
   const [partnerChartGroupBy, setPartnerChartGroupBy] = useState<ChartGroupBy>('month');
+  const [partnerViewMode, setPartnerViewMode] = useState<ViewMode>('partners');
 
   const { data, loading, error } = useEcommerceMetrics(
     periodType,
@@ -537,56 +543,91 @@ export default function Ecommerce() {
 
       {/* Partners Compilados Section */}
       <div className="space-y-4 animate-fade-in stagger-5">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <h3 className="text-lg font-semibold text-gray-800">
             📈 Partners Compilados
           </h3>
-          <div className="flex gap-2">
-            {CHART_GROUP_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                onClick={() => setPartnerChartGroupBy(option.value)}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
-                  partnerChartGroupBy === option.value
-                    ? 'bg-green-600 text-white shadow-md'
-                    : 'bg-white text-gray-600 border border-gray-200 hover:border-green-300 hover:bg-green-50'
-                }`}
-              >
-                {option.label}
-              </button>
-            ))}
+          <div className="flex flex-wrap items-center gap-4">
+            {/* View Mode Filter */}
+            <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
+              {VIEW_MODE_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => setPartnerViewMode(option.value)}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
+                    partnerViewMode === option.value
+                      ? 'bg-white text-green-700 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-800'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            {/* Time Group Filter */}
+            <div className="flex gap-2">
+              {CHART_GROUP_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => setPartnerChartGroupBy(option.value)}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                    partnerChartGroupBy === option.value
+                      ? 'bg-green-600 text-white shadow-md'
+                      : 'bg-white text-gray-600 border border-gray-200 hover:border-green-300 hover:bg-green-50'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <ExpandableChart title="Orders por Partner" dataPoints={partnerTimeSeriesData?.orders?.length || 12}>
+          <ExpandableChart 
+            title={partnerViewMode === 'categories' ? 'Orders por Categoría' : 'Orders por Partner'} 
+            dataPoints={partnerTimeSeriesData?.orders?.length || 12}
+          >
             <PartnerStackedChart
               data={partnerTimeSeriesData?.orders || []}
-              title="Orders por Partner"
+              title={partnerViewMode === 'categories' ? 'Orders por Categoría' : 'Orders por Partner'}
               type="orders"
+              viewMode={partnerViewMode}
             />
           </ExpandableChart>
-          <ExpandableChart title="% Orders por Partner" dataPoints={partnerTimeSeriesData?.orders?.length || 12}>
+          <ExpandableChart 
+            title={partnerViewMode === 'categories' ? '% Orders por Categoría' : '% Orders por Partner'} 
+            dataPoints={partnerTimeSeriesData?.orders?.length || 12}
+          >
             <PartnerStackedChart
               data={partnerTimeSeriesData?.orders || []}
-              title="% Orders por Partner"
+              title={partnerViewMode === 'categories' ? '% Orders por Categoría' : '% Orders por Partner'}
               type="orders"
               isPercentage
+              viewMode={partnerViewMode}
             />
           </ExpandableChart>
-          <ExpandableChart title="GMV por Partner" dataPoints={partnerTimeSeriesData?.gmv?.length || 12}>
+          <ExpandableChart 
+            title={partnerViewMode === 'categories' ? 'GMV por Categoría' : 'GMV por Partner'} 
+            dataPoints={partnerTimeSeriesData?.gmv?.length || 12}
+          >
             <PartnerStackedChart
               data={partnerTimeSeriesData?.gmv || []}
-              title="GMV por Partner"
+              title={partnerViewMode === 'categories' ? 'GMV por Categoría' : 'GMV por Partner'}
               type="gmv"
+              viewMode={partnerViewMode}
             />
           </ExpandableChart>
-          <ExpandableChart title="% GMV por Partner" dataPoints={partnerTimeSeriesData?.gmv?.length || 12}>
+          <ExpandableChart 
+            title={partnerViewMode === 'categories' ? '% GMV por Categoría' : '% GMV por Partner'} 
+            dataPoints={partnerTimeSeriesData?.gmv?.length || 12}
+          >
             <PartnerStackedChart
               data={partnerTimeSeriesData?.gmv || []}
-              title="% GMV por Partner"
+              title={partnerViewMode === 'categories' ? '% GMV por Categoría' : '% GMV por Partner'}
               type="gmv"
               isPercentage
+              viewMode={partnerViewMode}
             />
           </ExpandableChart>
         </div>
