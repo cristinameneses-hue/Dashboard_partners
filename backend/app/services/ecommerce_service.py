@@ -124,7 +124,12 @@ class EcommerceService:
             start_date, end_date
         )
         
-        totals = await self._calculate_totals(totals_raw)
+        totals = await self._calculate_totals(
+            totals_raw,
+            partners=None,  # No filter for global totals
+            start_date=start_date,
+            end_date=end_date
+        )
         
         return EcommerceResponse(
             period=period,
@@ -157,8 +162,14 @@ class EcommerceService:
         
         return self._calculate_derived_metrics(raw_metrics, pharmacies_with_tag)
     
-    async def _calculate_totals(self, raw: Dict[str, Any]) -> BaseMetrics:
-        """Calculate total metrics across all partners."""
+    async def _calculate_totals(
+        self, 
+        raw: Dict[str, Any],
+        partners: Optional[List[str]] = None,
+        start_date: Optional[Any] = None,
+        end_date: Optional[Any] = None
+    ) -> BaseMetrics:
+        """Calculate total metrics across all partners or filtered by partners."""
         
         gross_bookings = raw.get("gross_bookings", 0)
         cancelled_bookings = raw.get("cancelled_bookings", 0)
@@ -168,8 +179,12 @@ class EcommerceService:
         net_gmv = raw.get("net_gmv", 0.0)
         pharmacies_with_orders = raw.get("pharmacies_with_orders", 0)
         
-        # Get total pharmacies
-        total_pharmacies = await self._booking_repo.get_total_pharmacies()
+        # Get total pharmacies (filtered by partners if provided)
+        total_pharmacies = await self._booking_repo.get_total_pharmacies(
+            partners=partners,
+            start_date=start_date,
+            end_date=end_date
+        )
         
         pct_cancelled_bookings = (
             (cancelled_bookings / gross_bookings * 100) 
@@ -222,8 +237,12 @@ class EcommerceService:
         
         start_date, end_date = get_period_dates(period)
         
-        # Get total pharmacies (all pharmacies that have ever received orders)
-        total_pharmacies = await self._booking_repo.get_total_pharmacies()
+        # Get total pharmacies (filtered by partners if provided)
+        total_pharmacies = await self._booking_repo.get_total_pharmacies(
+            partners=partners,
+            start_date=None,  # Don't filter by date for total pharmacies base
+            end_date=None
+        )
         
         raw_data = await self._booking_repo.get_ecommerce_time_series(
             start_date, end_date, group_by, partners

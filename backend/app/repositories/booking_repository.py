@@ -463,27 +463,43 @@ class BookingRepository:
             "pharmacies_with_orders": 0
         }
 
-    async def get_total_pharmacies(self) -> int:
+    async def get_total_pharmacies(
+        self, 
+        partners: Optional[List[str]] = None,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None
+    ) -> int:
         """
-        Get total unique pharmacies that have ever received an ecommerce order.
-        This represents the total pharmacy base for percentage calculations.
+        Get total unique pharmacies that have received ecommerce orders.
+        If partners are provided, only count pharmacies that have orders from those partners.
+        If dates are provided, only count pharmacies with orders in that period.
         """
-        pipeline = [
-            {
-                "$match": {
-                    "thirdUser.user": {"$exists": True},
-                    "origin": {"$exists": False},
-                    "target": {"$exists": True}
-                }
-            },
-            {
-                "$group": {
-                    "_id": "$target"
-                }
-            },
-            {
-                "$count": "total"
+        match_stage: Dict[str, Any] = {
+            "thirdUser.user": {"$exists": True},
+            "origin": {"$exists": False},
+            "target": {"$exists": True}
+        }
+        
+        # Add date filter if provided
+        if start_date and end_date:
+            match_stage["created"] = {
+                "$gte": start_date,
+                "$lte": end_date
             }
+        
+        # Add partner filter if provided
+        if partners and len(partners) > 0:
+            partner_conditions = []
+            for partner in partners:
+                partner_conditions.append({
+                    "thirdUser.user": {"$regex": partner, "$options": "i"}
+                })
+            match_stage["$or"] = partner_conditions
+        
+        pipeline = [
+            {"$match": match_stage},
+            {"$group": {"_id": "$target"}},
+            {"$count": "total"}
         ]
         
         cursor = self._collection.aggregate(pipeline)

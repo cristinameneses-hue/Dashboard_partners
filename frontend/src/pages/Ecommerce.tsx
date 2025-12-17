@@ -178,6 +178,10 @@ export default function Ecommerce() {
     const cancelled_gmv = filtered.reduce((sum, p) => sum + p.cancelled_gmv, 0);
     const net_gmv = filtered.reduce((sum, p) => sum + p.net_gmv, 0);
     const pharmacies = filtered.reduce((sum, p) => sum + p.pharmacies_with_orders, 0);
+    
+    // Use total_pharmacies from time series data when partners are filtered
+    // This comes from the backend filtered by the selected partners
+    const total_pharmacies = timeSeriesData?.total_pharmacies ?? data?.totals?.total_pharmacies ?? 0;
 
     return {
       gross_bookings,
@@ -191,10 +195,10 @@ export default function Ecommerce() {
       avg_gmv_per_pharmacy: pharmacies > 0 ? net_gmv / pharmacies : 0,
       pct_cancelled_bookings: gross_bookings > 0 ? (cancelled_bookings / gross_bookings) * 100 : 0,
       pct_cancelled_gmv: gross_gmv > 0 ? (cancelled_gmv / gross_gmv) * 100 : 0,
-      total_pharmacies: data?.totals?.total_pharmacies || 0,
+      total_pharmacies,
       pharmacies_with_orders: pharmacies,
     };
-  }, [data?.totals, filteredPartners, selectedPartners]);
+  }, [data?.totals, filteredPartners, selectedPartners, timeSeriesData?.total_pharmacies]);
 
   const columns = useMemo(() => [
     columnHelper.accessor('partner', {
