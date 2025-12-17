@@ -6,19 +6,56 @@ import {
   YAxis,
   Tooltip,
   Legend,
-  Cell,
 } from 'recharts';
 
-// Partner colors
+// Extended partner colors palette - one unique color for each partner
 const PARTNER_COLORS: Record<string, string> = {
+  // Delivery partners
   'glovo': '#00C3A5',
+  'glovo otc': '#00A896',
+  'uber': '#06C167',
   'uber-eats': '#06C167',
+  'justeat': '#FF8000',
   'just-eat': '#FF8000',
+  // Retail & marketplaces
+  'carrefour': '#004E98',
+  'amazon': '#FF9900',
+  'enna': '#E91E63',
+  'danone': '#0073CF',
+  'nordic': '#5C6BC0',
+  'perfumesclub': '#9C27B0',
+  // Miravia partners
+  'trebol miravia-lc': '#F44336',
+  'nervion miravia-lc': '#E53935',
+  'pierre fabre-miravia': '#D32F2F',
+  'b58 miravia-lc': '#C62828',
+  // Pharmacies & labs
+  'ludaalmacen': '#00A651',
   'luda-farma': '#00A651',
+  'ludafarma': '#00A651',
   'retail': '#6366F1',
   'labs': '#8B5CF6',
-  'default': '#94A3B8',
+  // Others
+  'procter': '#1976D2',
+  'hartmann': '#00BCD4',
 };
+
+// Fallback color palette for unknown partners
+const FALLBACK_COLORS = [
+  '#3F51B5', '#009688', '#795548', '#607D8B', '#FF5722',
+  '#CDDC39', '#4CAF50', '#2196F3', '#673AB7', '#FFC107',
+  '#03A9F4', '#8BC34A', '#FF4081', '#00BFA5', '#7C4DFF'
+];
+
+// Get color for a partner
+function getPartnerColor(partner: string, index: number): string {
+  const key = partner.toLowerCase();
+  if (PARTNER_COLORS[key]) {
+    return PARTNER_COLORS[key];
+  }
+  // Use fallback color based on index
+  return FALLBACK_COLORS[index % FALLBACK_COLORS.length];
+}
 
 interface PartnerStackedChartProps {
   data: any[];
@@ -135,12 +172,13 @@ export default function PartnerStackedChart({ data, title, type, isPercentage = 
               axisLine={{ stroke: '#E5E7EB' }}
               tickFormatter={(value) => 
                 isPercentage 
-                  ? `${value}%` 
+                  ? `${Math.round(value)}%` 
                   : type === 'gmv' 
                     ? formatCurrency(value)
                     : formatNumber(value)
               }
               domain={isPercentage ? [0, 100] : ['auto', 'auto']}
+              ticks={isPercentage ? [0, 20, 40, 60, 80, 100] : undefined}
             />
             <Tooltip content={<CustomTooltip type={type} isPercentage={isPercentage} />} />
             <Legend 
@@ -154,7 +192,7 @@ export default function PartnerStackedChart({ data, title, type, isPercentage = 
                 key={partner}
                 dataKey={partner}
                 stackId="stack"
-                fill={PARTNER_COLORS[partner.toLowerCase()] || PARTNER_COLORS['default']}
+                fill={getPartnerColor(partner, index)}
                 name={partner}
               />
             ))}
