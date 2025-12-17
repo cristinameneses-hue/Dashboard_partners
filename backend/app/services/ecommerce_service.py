@@ -314,20 +314,25 @@ class EcommerceService:
             gmv_by_period[label][partner] = round(item.get("net_gmv", 0), 2)
         
         # Convert to sorted lists
+        months_list = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 
+                       'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+        
         def sort_key(label: str) -> tuple:
             # Sort by year first, then by period number
             parts = label.split()
             if len(parts) >= 2:
                 year = int(parts[-1]) if len(parts[-1]) == 4 else int(f"20{parts[-1]}")
-                if label.startswith("S"):  # Week
-                    return (year, int(parts[0][1:]))
-                elif label.startswith("Q"):  # Quarter
-                    return (year, int(parts[0][1:]))
-                else:  # Month
-                    months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 
-                             'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
-                    month = months.index(parts[0]) + 1 if parts[0] in months else 0
-                    return (year, month)
+                first_part = parts[0]
+                
+                # Check if it's a month name first (before checking S/Q prefix)
+                if first_part in months_list:
+                    return (year, months_list.index(first_part) + 1)
+                elif first_part.startswith("S") and first_part[1:].isdigit():  # Week (S1, S52, etc.)
+                    return (year, int(first_part[1:]))
+                elif first_part.startswith("Q") and first_part[1:].isdigit():  # Quarter
+                    return (year, int(first_part[1:]))
+            elif len(parts) == 1 and parts[0].isdigit():  # Year only
+                return (int(parts[0]), 0)
             return (0, 0)
         
         sorted_periods = sorted(orders_by_period.keys(), key=sort_key)
