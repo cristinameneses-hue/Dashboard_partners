@@ -493,4 +493,98 @@ class BookingRepository:
             return results[0].get("total", 0)
         return 0
 
+    async def get_ecommerce_partner_time_series(
+        self,
+        start_date: datetime,
+        end_date: datetime,
+        group_by: str = "month"
+    ) -> List[Dict[str, Any]]:
+        """
+        Get ecommerce metrics grouped by time period and partner.
+        Returns data for stacked charts showing partner contributions.
+        """
+        cancelled_state = self._settings.cancelled_state_id
+        
+        # Define date grouping based on group_by parameter
+        if group_by == "week":
+            date_group = {
+                "year": {"$year": "$createdDate"},
+                "week": {"$isoWeek": "$createdDate"}
+            }
+            sort_fields = {"_id.year": 1, "_id.week": 1}
+        elif group_by == "quarter":
+            date_group = {
+                "year": {"$year": "$createdDate"},
+                "quarter": {
+                    "$ceil": {"$divide": [{"$month": "$createdDate"}, 3]}
+                }
+            }
+            sort_fields = {"_id.year": 1, "_id.quarter": 1}
+        elif group_by == "year":
+            date_group = {
+                "year": {"$year": "$createdDate"}
+            }
+            sort_fields = {"_id.year": 1}
+        else:  # month (default)
+            date_group = {
+                "year": {"$year": "$createdDate"},
+                "month": {"$month": "$createdDate"}
+            }
+            sort_fields = {"_id.year": 1, "_id.month": 1}
+        
+        pipeline = [
+            {
+                "$match": {
+                    "thirdUser.user": {"$exists": True},
+                    "origin": {"$exists": False},
+                    "createdDate": {"$gte": start_date, "$lte": end_date}
+                }
+            },
+            {
+                "$addFields": {
+                    "gmv": self._gmv_calculation(),
+                    "is_cancelled": {"$eq": ["$state", cancelled_state]},
+                    "partner_lower": {"$toLower": "$thirdUser.user"}
+                }
+            },
+            {
+                "$group": {
+                    "_id": {
+                        **date_group,
+                        "partner": "$partner_lower"
+                    },
+                    "gross_bookings": {"$sum": 1},
+                    "cancelled_bookings": {
+                        "$sum": {"$cond": ["$is_cancelled", 1, 0]}
+                    },
+                    "gross_gmv": {"$sum": "$gmv"},
+                    "cancelled_gmv": {
+                        "$sum": {"$cond": ["$is_cancelled", "$gmv", 0]}
+                    }
+                }
+            },
+            {"$sort": sort_fields},
+            {
+                "$project": {
+                    "_id": 0,
+                    "period": {
+                        k: v for k, v in {
+                            "year": "$_id.year",
+                            "month": "$_id.month" if group_by == "month" else None,
+                            "week": "$_id.week" if group_by == "week" else None,
+                            "quarter": "$_id.quarter" if group_by == "quarter" else None
+                        }.items() if v is not None
+                    },
+                    "partner": "$_id.partner",
+                    "gross_bookings": 1,
+                    "net_bookings": {"$subtract": ["$gross_bookings", "$cancelled_bookings"]},
+                    "gross_gmv": self._round_to_2_decimals("$gross_gmv"),
+                    "net_gmv": self._round_to_2_decimals({"$subtract": ["$gross_gmv", "$cancelled_gmv"]})
+                }
+            }
+        ]
+        
+        cursor = self._collection.aggregate(pipeline)
+        return await cursor.to_list(length=500)
+
 

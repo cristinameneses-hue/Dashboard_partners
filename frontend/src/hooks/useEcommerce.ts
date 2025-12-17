@@ -97,4 +97,40 @@ export function useTimeSeries(
   return { data, loading, error, refetch: fetchData };
 }
 
+export function usePartnerTimeSeries(
+  periodType: PeriodType = 'this_year',
+  groupBy: ChartGroupBy = 'month',
+  startDate?: string,
+  endDate?: string
+) {
+  const [data, setData] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const result = await ecommerceService.getPartnerTimeSeries(
+        periodType,
+        groupBy,
+        startDate,
+        endDate
+      );
+      setData(result);
+    } catch (err) {
+      setError('Error loading partner time series data');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, [periodType, groupBy, startDate, endDate]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  return { data, loading, error, refetch: fetchData };
+}
+
 

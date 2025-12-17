@@ -1,6 +1,5 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { PARTNER_CATEGORIES } from '../types';
 import LudaLogo from './LudaLogo';
 import LudaLogoFull from './LudaLogoFull';
 
@@ -51,49 +50,6 @@ export default function Layout({ children }: LayoutProps) {
           })}
         </nav>
 
-        {/* Categories */}
-        <div className="px-4 mt-6">
-          <p className="text-xs font-medium text-white/50 uppercase tracking-wider px-4 mb-3">
-            Categorías
-          </p>
-          <div className="space-y-1 max-h-64 overflow-y-auto">
-            {PARTNER_CATEGORIES.filter(cat => cat.id !== 'all').map((category) => (
-              <div key={category.id} className="px-4 py-2">
-                <div className="flex items-center gap-2 mb-1">
-                  <div 
-                    className="w-2.5 h-2.5 rounded-full border-2 border-white/30"
-                    style={{ backgroundColor: category.color }}
-                  />
-                  <span className="text-sm font-medium text-white/90">
-                    {category.name}
-                  </span>
-                </div>
-                <div className="ml-5 space-y-0.5">
-                  {category.partners.map((partner) => (
-                    <div key={partner} className="text-xs text-white/50 capitalize">
-                      {partner.replace('-', ' ')}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="absolute bottom-0 left-0 right-0 p-4">
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-                <span className="text-white text-sm">🔗</span>
-              </div>
-              <div>
-                <p className="text-xs text-white/50">Conectado a</p>
-                <p className="text-sm font-medium text-white">LudaFarma-PRO</p>
-              </div>
-            </div>
-          </div>
-        </div>
       </aside>
 
       {/* Main Content */}

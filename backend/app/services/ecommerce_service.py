@@ -270,4 +270,81 @@ class EcommerceService:
             "total_pharmacies": total_pharmacies
         }
 
+    async def get_partner_time_series(
+        self,
+        period: PeriodFilter,
+        group_by: str = "month"
+    ) -> Dict[str, Any]:
+        """Get time series metrics grouped by period and partner for stacked charts."""
+        
+        start_date, end_date = get_period_dates(period)
+        
+        raw_data = await self._booking_repo.get_ecommerce_partner_time_series(
+            start_date, end_date, group_by
+        )
+        
+        # Organize data by period with partner as keys
+        orders_by_period: Dict[str, Dict[str, Any]] = {}
+        gmv_by_period: Dict[str, Dict[str, Any]] = {}
+        
+        for item in raw_data:
+            period_info = item.get("period", {})
+            partner = item.get("partner", "unknown")
+            
+            # Format period label
+            if group_by == "week":
+                label = f"S{period_info.get('week', 0)} {period_info.get('year', '')}"
+            elif group_by == "quarter":
+                label = f"Q{int(period_info.get('quarter', 0))} {period_info.get('year', '')}"
+            elif group_by == "year":
+                label = str(period_info.get('year', ''))
+            else:  # month
+                months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 
+                         'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+                month_idx = period_info.get('month', 1) - 1
+                label = f"{months[month_idx]} {str(period_info.get('year', ''))[-2:]}"
+            
+            # Initialize period if not exists
+            if label not in orders_by_period:
+                orders_by_period[label] = {"period": label}
+                gmv_by_period[label] = {"period": label}
+            
+            # Add partner data
+            orders_by_period[label][partner] = item.get("net_bookings", 0)
+            gmv_by_period[label][partner] = round(item.get("net_gmv", 0), 2)
+        
+        # Convert to sorted lists
+        def sort_key(label: str) -> tuple:
+            # Sort by year first, then by period number
+            parts = label.split()
+            if len(parts) >= 2:
+                year = int(parts[-1]) if len(parts[-1]) == 4 else int(f"20{parts[-1]}")
+                if label.startswith("S"):  # Week
+                    return (year, int(parts[0][1:]))
+                elif label.startswith("Q"):  # Quarter
+                    return (year, int(parts[0][1:]))
+                else:  # Month
+                    months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 
+                             'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+                    month = months.index(parts[0]) + 1 if parts[0] in months else 0
+                    return (year, month)
+            return (0, 0)
+        
+        sorted_periods = sorted(orders_by_period.keys(), key=sort_key)
+        
+        orders_data = [orders_by_period[p] for p in sorted_periods]
+        gmv_data = [gmv_by_period[p] for p in sorted_periods]
+        
+        # Get all unique partners
+        all_partners = set()
+        for item in raw_data:
+            all_partners.add(item.get("partner", "unknown"))
+        
+        return {
+            "group_by": group_by,
+            "partners": list(all_partners),
+            "orders": orders_data,
+            "gmv": gmv_data
+        }
+
 

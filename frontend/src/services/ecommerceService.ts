@@ -63,6 +63,22 @@ export const ecommerceService = {
     const response = await api.get<TimeSeriesResponse>(`/ecommerce/timeseries?${params}`);
     return response.data;
   },
+
+  async getPartnerTimeSeries(
+    periodType: PeriodType = 'this_year',
+    groupBy: string = 'month',
+    startDate?: string,
+    endDate?: string
+  ): Promise<any> {
+    const params = new URLSearchParams();
+    params.append('period_type', periodType);
+    params.append('group_by', groupBy);
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    
+    const response = await api.get(`/ecommerce/partner-timeseries?${params}`);
+    return response.data;
+  },
 };
 
 

@@ -154,3 +154,37 @@ async def get_time_series(
     )
 
 
+@router.get("/partner-timeseries")
+async def get_partner_time_series(
+    period_type: PeriodType = Query(
+        PeriodType.THIS_YEAR,
+        description="Period type for filtering"
+    ),
+    start_date: Optional[date] = Query(
+        None,
+        description="Start date for custom period"
+    ),
+    end_date: Optional[date] = Query(
+        None,
+        description="End date for custom period"
+    ),
+    group_by: str = Query(
+        "month",
+        description="Group by: week, month, quarter, year"
+    ),
+    service: EcommerceService = Depends(get_ecommerce_service)
+):
+    """
+    Get time series metrics grouped by partner for stacked charts.
+    
+    Returns orders and GMV data organized by period with partner breakdown.
+    """
+    period = PeriodFilter(
+        period_type=period_type,
+        start_date=start_date,
+        end_date=end_date
+    )
+    
+    return await service.get_partner_time_series(period, group_by)
+
+

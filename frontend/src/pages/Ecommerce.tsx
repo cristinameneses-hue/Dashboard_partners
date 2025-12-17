@@ -8,7 +8,8 @@ import LineChartComponent from '../components/charts/LineChartComponent';
 import PharmacyComboChart from '../components/charts/PharmacyComboChart';
 import TimeSeriesTable from '../components/charts/TimeSeriesTable';
 import ExpandableChart from '../components/charts/ExpandableChart';
-import { useEcommerceMetrics, useTimeSeries, ChartGroupBy } from '../hooks/useEcommerce';
+import PartnerStackedChart from '../components/charts/PartnerStackedChart';
+import { useEcommerceMetrics, useTimeSeries, usePartnerTimeSeries, ChartGroupBy } from '../hooks/useEcommerce';
 import type { PeriodType, EcommerceMetrics } from '../types';
 import { PARTNER_CATEGORIES } from '../types';
 
@@ -69,6 +70,7 @@ export default function Ecommerce() {
   const [selectedPartners, setSelectedPartners] = useState<string[]>([]);
   const [chartGroupBy, setChartGroupBy] = useState<ChartGroupBy>('month');
   const [tableGroupBy, setTableGroupBy] = useState<ChartGroupBy>('month');
+  const [partnerChartGroupBy, setPartnerChartGroupBy] = useState<ChartGroupBy>('month');
 
   const { data, loading, error } = useEcommerceMetrics(
     periodType,
@@ -91,6 +93,14 @@ export default function Ecommerce() {
     chartPeriodType,
     tableGroupBy,
     selectedPartners.length > 0 ? selectedPartners : undefined,
+    periodType === 'custom' ? customStart : undefined,
+    periodType === 'custom' ? customEnd : undefined
+  );
+
+  // Partner time series for stacked charts
+  const { data: partnerTimeSeriesData } = usePartnerTimeSeries(
+    chartPeriodType,
+    partnerChartGroupBy,
     periodType === 'custom' ? customStart : undefined,
     periodType === 'custom' ? customEnd : undefined
   );
@@ -175,6 +185,8 @@ export default function Ecommerce() {
       avg_gmv_per_pharmacy: pharmacies > 0 ? net_gmv / pharmacies : 0,
       pct_cancelled_bookings: gross_bookings > 0 ? (cancelled_bookings / gross_bookings) * 100 : 0,
       pct_cancelled_gmv: gross_gmv > 0 ? (cancelled_gmv / gross_gmv) * 100 : 0,
+      total_pharmacies: data?.totals?.total_pharmacies || 0,
+      pharmacies_with_orders: pharmacies,
     };
   }, [data?.totals, filteredPartners, selectedPartners]);
 
@@ -257,27 +269,31 @@ export default function Ecommerce() {
             Métricas de rendimiento por partner y categoría
           </p>
         </div>
-        {data && (
-          <div className="text-right bg-white rounded-lg px-4 py-2 shadow-sm border border-gray-200">
-            <p className="text-xs text-gray-400">Período</p>
-            <p className="text-sm text-gray-700 font-medium">
-              {new Date(data.period_start).toLocaleDateString('es-ES')} - {new Date(data.period_end).toLocaleDateString('es-ES')}
-            </p>
-          </div>
-        )}
       </div>
 
-      {/* Filter Bar - Sticky */}
+      {/* Filter Bar - Sticky with Period */}
       <div className="sticky top-0 z-50 -mx-8 px-8 py-3 bg-gray-50/95 backdrop-blur-sm border-b border-gray-200 shadow-sm">
         <div className="card p-4" style={{ zIndex: 100 }}>
-          <FilterBar
-            periodType={periodType}
-            onPeriodChange={handlePeriodChange}
-            customStart={customStart}
-            customEnd={customEnd}
-            selectedPartners={selectedPartners}
-            onPartnersChange={setSelectedPartners}
-          />
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex-1">
+              <FilterBar
+                periodType={periodType}
+                onPeriodChange={handlePeriodChange}
+                customStart={customStart}
+                customEnd={customEnd}
+                selectedPartners={selectedPartners}
+                onPartnersChange={setSelectedPartners}
+              />
+            </div>
+            {data && (
+              <div className="text-right bg-white rounded-lg px-4 py-2 shadow-sm border border-gray-200 flex-shrink-0">
+                <p className="text-xs text-gray-400">Período seleccionado</p>
+                <p className="text-sm text-gray-700 font-medium">
+                  {new Date(data.period_start).toLocaleDateString('es-ES')} - {new Date(data.period_end).toLocaleDateString('es-ES')}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -362,13 +378,13 @@ export default function Ecommerce() {
           />
           <MetricCard
             title="# Farmacias"
-            value={formatNumber(totals.total_pharmacies)}
+            value={formatNumber(totals.total_pharmacies || 0)}
             color="cyan"
           />
           <MetricCard
             title="# Fcias. ≥1 ped."
-            value={formatNumber(totals.pharmacies_with_orders)}
-            color="teal"
+            value={formatNumber(totals.pharmacies_with_orders || 0)}
+            color="cyan"
           />
         </div>
       )}
@@ -517,6 +533,63 @@ export default function Ecommerce() {
           groupBy={tableGroupBy}
           title={`Métricas ${tableGroupBy === 'week' ? 'Semanales' : tableGroupBy === 'month' ? 'Mensuales' : tableGroupBy === 'quarter' ? 'Trimestrales' : 'Anuales'}`}
         />
+      </div>
+
+      {/* Partners Compilados Section */}
+      <div className="space-y-4 animate-fade-in stagger-5">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-800">
+            📈 Partners Compilados
+          </h3>
+          <div className="flex gap-2">
+            {CHART_GROUP_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                onClick={() => setPartnerChartGroupBy(option.value)}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                  partnerChartGroupBy === option.value
+                    ? 'bg-green-600 text-white shadow-md'
+                    : 'bg-white text-gray-600 border border-gray-200 hover:border-green-300 hover:bg-green-50'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <ExpandableChart title="Orders por Partner" dataPoints={partnerTimeSeriesData?.orders?.length || 12}>
+            <PartnerStackedChart
+              data={partnerTimeSeriesData?.orders || []}
+              title="Orders por Partner"
+              type="orders"
+            />
+          </ExpandableChart>
+          <ExpandableChart title="% Orders por Partner" dataPoints={partnerTimeSeriesData?.orders?.length || 12}>
+            <PartnerStackedChart
+              data={partnerTimeSeriesData?.orders || []}
+              title="% Orders por Partner"
+              type="orders"
+              isPercentage
+            />
+          </ExpandableChart>
+          <ExpandableChart title="GMV por Partner" dataPoints={partnerTimeSeriesData?.gmv?.length || 12}>
+            <PartnerStackedChart
+              data={partnerTimeSeriesData?.gmv || []}
+              title="GMV por Partner"
+              type="gmv"
+            />
+          </ExpandableChart>
+          <ExpandableChart title="% GMV por Partner" dataPoints={partnerTimeSeriesData?.gmv?.length || 12}>
+            <PartnerStackedChart
+              data={partnerTimeSeriesData?.gmv || []}
+              title="% GMV por Partner"
+              type="gmv"
+              isPercentage
+            />
+          </ExpandableChart>
+        </div>
       </div>
 
       {/* Partners Table */}
