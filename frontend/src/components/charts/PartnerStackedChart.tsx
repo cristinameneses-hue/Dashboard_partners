@@ -57,28 +57,16 @@ interface PartnerStackedChartProps {
   selectedPartners?: string[]; // Partners selected in the main filter
 }
 
-// Format numbers with thousands separator
+// Format numbers with thousands separator - full numbers, no abbreviations
 function formatNumber(num: number): string {
-  if (num >= 1000000) {
-    return `${(num / 1000000).toFixed(1)}M`;
-  }
-  if (num >= 1000) {
-    return `${(num / 1000).toFixed(0)}K`;
-  }
   return new Intl.NumberFormat('es-ES', {
     useGrouping: true,
     maximumFractionDigits: 0
   }).format(Math.round(num));
 }
 
-// Format currency
+// Format currency - full numbers, no abbreviations, no decimals
 function formatCurrency(num: number): string {
-  if (num >= 1000000) {
-    return `${(num / 1000000).toFixed(1)}M €`;
-  }
-  if (num >= 1000) {
-    return `${(num / 1000).toFixed(0)}K €`;
-  }
   return new Intl.NumberFormat('es-ES', {
     style: 'currency',
     currency: 'EUR',
@@ -86,6 +74,19 @@ function formatCurrency(num: number): string {
     maximumFractionDigits: 0,
     useGrouping: true
   }).format(Math.round(num));
+}
+
+// Format for Y-axis labels (abbreviated)
+function formatAxisNumber(num: number): string {
+  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+  if (num >= 1000) return `${(num / 1000).toFixed(0)}K`;
+  return num.toString();
+}
+
+function formatAxisCurrency(num: number): string {
+  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M €`;
+  if (num >= 1000) return `${(num / 1000).toFixed(0)}K €`;
+  return `${num} €`;
 }
 
 // Normalize partner name for comparison
@@ -292,8 +293,8 @@ export default function PartnerStackedChart({
                 isPercentage 
                   ? `${Math.round(value)}%` 
                   : type === 'gmv' 
-                    ? formatCurrency(value)
-                    : formatNumber(value)
+                    ? formatAxisCurrency(value)
+                    : formatAxisNumber(value)
               }
               domain={isPercentage ? [0, 100] : ['auto', 'auto']}
               ticks={isPercentage ? [0, 20, 40, 60, 80, 100] : undefined}

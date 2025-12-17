@@ -328,9 +328,9 @@ class EcommerceService:
                 orders_by_period[label] = {"period": label}
                 gmv_by_period[label] = {"period": label}
             
-            # Add partner data
-            orders_by_period[label][partner] = item.get("net_bookings", 0)
-            gmv_by_period[label][partner] = round(item.get("net_gmv", 0), 2)
+            # Add partner data (using gross values as requested)
+            orders_by_period[label][partner] = item.get("gross_bookings", 0)
+            gmv_by_period[label][partner] = round(item.get("gross_gmv", 0), 2)
         
         # Convert to sorted lists
         months_list = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 
