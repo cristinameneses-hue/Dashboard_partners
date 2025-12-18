@@ -116,12 +116,14 @@ class ShortageTimeSeriesPoint(BaseModel):
     net_bookings: int = 0
     pct_cancelled: float = 0.0
     delta_bookings: int = 0  # Delta vs previous period
+    pct_growth_bookings: float = 0.0  # % growth vs previous period
     # GMV metrics
     gross_gmv: float = 0.0
     cancelled_gmv: float = 0.0
     net_gmv: float = 0.0
     pct_cancelled_gmv: float = 0.0
     delta_gmv: float = 0.0  # Delta vs previous period
+    pct_growth_gmv: float = 0.0  # % growth vs previous period
     # Cumulative metrics
     cumulative_ops: int = 0
     cumulative_gmv: float = 0.0

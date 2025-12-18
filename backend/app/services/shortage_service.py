@@ -168,6 +168,16 @@ class ShortageService:
             delta_bookings = gross_bookings - prev_gross_bookings
             delta_gmv = gross_gmv - prev_gross_gmv
             
+            # Calculate % growth (vs previous period)
+            pct_growth_bookings = (
+                (delta_bookings / prev_gross_bookings * 100)
+                if prev_gross_bookings > 0 else 0.0
+            )
+            pct_growth_gmv = (
+                (delta_gmv / prev_gross_gmv * 100)
+                if prev_gross_gmv > 0 else 0.0
+            )
+            
             # Calculate cumulative values
             cumulative_ops += gross_bookings
             cumulative_gmv += gross_gmv
@@ -188,12 +198,14 @@ class ShortageService:
                 net_bookings=net_bookings,
                 pct_cancelled=round(pct_cancelled, 1),
                 delta_bookings=delta_bookings,
+                pct_growth_bookings=round(pct_growth_bookings, 1),
                 # GMV metrics
                 gross_gmv=round(gross_gmv, 2),
                 cancelled_gmv=round(cancelled_gmv, 2),
                 net_gmv=round(net_gmv, 2),
                 pct_cancelled_gmv=round(pct_cancelled_gmv, 1),
                 delta_gmv=round(delta_gmv, 2),
+                pct_growth_gmv=round(pct_growth_gmv, 1),
                 # Cumulative
                 cumulative_ops=cumulative_ops,
                 cumulative_gmv=round(cumulative_gmv, 2)

@@ -107,12 +107,14 @@ export interface ShortageTimeSeriesPoint {
   net_bookings: number;
   pct_cancelled: number;
   delta_bookings: number;
+  pct_growth_bookings: number;
   // GMV metrics
   gross_gmv: number;
   cancelled_gmv: number;
   net_gmv: number;
   pct_cancelled_gmv: number;
   delta_gmv: number;
+  pct_growth_gmv: number;
   // Cumulative
   cumulative_ops: number;
   cumulative_gmv: number;

@@ -58,7 +58,7 @@ function getHeatmapColor(value: number, metric: string, allValues: number[]): st
   // Only apply heatmap to specific metrics
   const positiveMetrics = ['gross_bookings', 'gross_gmv', 'active_pharmacies'];
   const negativeMetrics = ['pct_cancelled', 'pct_cancelled_gmv'];
-  const deltaMetrics = ['delta_bookings', 'delta_gmv'];
+  const deltaMetrics = ['delta_bookings', 'delta_gmv', 'pct_growth_bookings', 'pct_growth_gmv'];
   
   if (!positiveMetrics.includes(metric) && !negativeMetrics.includes(metric) && !deltaMetrics.includes(metric)) {
     return '';
@@ -103,6 +103,12 @@ function getHeatmapColor(value: number, metric: string, allValues: number[]): st
   return 'bg-red-200/70';
 }
 
+// Format growth percentage (with + sign for positive)
+function formatGrowthPercent(num: number): string {
+  const sign = num > 0 ? '+' : '';
+  return `${sign}${num.toFixed(1)}%`;
+}
+
 // Row definitions - ordered as requested
 const rows = [
   { key: 'total_pharmacies', label: '# Farmacias', format: formatNumber },
@@ -117,11 +123,13 @@ const rows = [
   { key: 'net_bookings', label: 'Orders netas', format: formatNumber },
   { key: 'pct_cancelled', label: '% Cancelaciones orders', format: formatPercent },
   { key: 'delta_bookings', label: '∆ Orders', format: formatDelta },
+  { key: 'pct_growth_bookings', label: '% Crecimiento orders', format: formatGrowthPercent },
   { key: 'gross_gmv', label: 'GMV bruto', format: formatCurrency },
   { key: 'cancelled_gmv', label: 'GMV cancelado', format: formatCurrency },
   { key: 'net_gmv', label: 'GMV neto', format: formatCurrency },
   { key: 'pct_cancelled_gmv', label: '% Cancelación GMV', format: formatPercent },
   { key: 'delta_gmv', label: '∆ GMV', format: formatDeltaCurrency },
+  { key: 'pct_growth_gmv', label: '% Crecimiento GMV', format: formatGrowthPercent },
 ];
 
 export default function ShortageTimeSeriesTable({ data, groupBy, title }: ShortageTimeSeriesTableProps) {
@@ -150,7 +158,7 @@ export default function ShortageTimeSeriesTable({ data, groupBy, title }: Shorta
     }
   };
 
-  // Update delta labels dynamically
+  // Update delta and growth labels dynamically
   const dynamicRows = useMemo(() => {
     const deltaLabel = getDeltaLabel();
     return rows.map(row => {
@@ -159,6 +167,12 @@ export default function ShortageTimeSeriesTable({ data, groupBy, title }: Shorta
       }
       if (row.key === 'delta_gmv') {
         return { ...row, label: `∆ GMV (${deltaLabel})` };
+      }
+      if (row.key === 'pct_growth_bookings') {
+        return { ...row, label: `% Crecimiento orders (${deltaLabel})` };
+      }
+      if (row.key === 'pct_growth_gmv') {
+        return { ...row, label: `% Crecimiento GMV (${deltaLabel})` };
       }
       return row;
     });
@@ -208,9 +222,10 @@ export default function ShortageTimeSeriesTable({ data, groupBy, title }: Shorta
                     const value = (point as any)[row.key] || 0;
                     const cellBg = getHeatmapColor(value, row.key, metricValues);
                     
-                    // Special styling for delta values
+                    // Special styling for delta and growth values
                     let textColor = '';
-                    if (row.key === 'delta_bookings' || row.key === 'delta_gmv') {
+                    const isDeltaOrGrowth = ['delta_bookings', 'delta_gmv', 'pct_growth_bookings', 'pct_growth_gmv'].includes(row.key);
+                    if (isDeltaOrGrowth) {
                       if (value > 0) textColor = 'text-green-600 font-medium';
                       else if (value < 0) textColor = 'text-red-600 font-medium';
                     }
