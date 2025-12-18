@@ -1,8 +1,20 @@
 import { useState } from 'react';
 import FilterBar from '../components/FilterBar';
 import MetricCard from '../components/MetricCard';
-import { useShortageMetrics } from '../hooks/useShortage';
+import ExpandableChart from '../components/charts/ExpandableChart';
+import ShortageStackedChart from '../components/charts/ShortageStackedChart';
+import ShortageCumulativeChart from '../components/charts/ShortageCumulativeChart';
+import ShortageOpsGMVCombo from '../components/charts/ShortageOpsGMVCombo';
+import { useShortageMetrics, useShortageTimeSeries, ChartGroupBy } from '../hooks/useShortage';
 import type { PeriodType } from '../types';
+
+// Time group options
+const CHART_GROUP_OPTIONS: { value: ChartGroupBy; label: string }[] = [
+  { value: 'week', label: 'Semana' },
+  { value: 'month', label: 'Mes' },
+  { value: 'quarter', label: 'Trimestre' },
+  { value: 'year', label: 'Año' },
+];
 
 // Format numbers with thousands separator (punto de miles)
 function formatNumber(num: number): string {
@@ -38,11 +50,20 @@ export default function Shortage() {
   const [periodType, setPeriodType] = useState<PeriodType>('this_month');
   const [customStart, setCustomStart] = useState<string>();
   const [customEnd, setCustomEnd] = useState<string>();
+  const [chartGroupBy, setChartGroupBy] = useState<ChartGroupBy>('month');
+
+  // Period type for charts (always show year data for trends)
+  const chartPeriodType: PeriodType = 'this_year';
 
   const { data, loading, error } = useShortageMetrics(
     periodType,
     customStart,
     customEnd
+  );
+
+  const { data: timeSeriesData } = useShortageTimeSeries(
+    chartPeriodType,
+    chartGroupBy
   );
 
   const handlePeriodChange = (
@@ -245,38 +266,124 @@ export default function Shortage() {
               </div>
             </div>
           </div>
+        </>
+      )}
 
-          {/* Summary Card */}
-          <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm animate-fade-in">
-            <h3 className="font-semibold text-gray-800 mb-4">Resumen</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              <div>
-                <p className="text-sm text-gray-500">Total Transferencias</p>
-                <p className="text-xl font-bold text-gray-800">
-                  {formatNumber(metrics.net_bookings)}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Valor Total</p>
-                <p className="text-xl font-bold text-green-600">
-                  {formatGMV(metrics.net_gmv)}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Tasa de Cancelación</p>
-                <p className={`text-xl font-bold ${metrics.pct_cancelled_bookings > 10 ? 'text-red-600' : 'text-gray-800'}`}>
-                  {metrics.pct_cancelled_bookings.toFixed(2)}%
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Valor Medio por Transferencia</p>
-                <p className="text-xl font-bold text-amber-600">
-                  {formatCurrency(metrics.average_ticket)}
-                </p>
-              </div>
+      {/* Charts Section */}
+      <div className="space-y-6 animate-fade-in">
+        {/* Time Group Filter */}
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-800">📈 Evolución Temporal</h2>
+          <div className="flex items-center gap-2 bg-white rounded-lg p-1 border border-gray-200">
+            {CHART_GROUP_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                onClick={() => setChartGroupBy(option.value)}
+                className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                  chartGroupBy === option.value
+                    ? 'bg-[#00A651] text-white'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Ops & GMV Combined Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <ExpandableChart 
+            title="Shortage Ops Monthly Evolution" 
+            dataPoints={timeSeriesData?.data?.length || 12}
+          >
+            <ShortageStackedChart
+              data={timeSeriesData?.data || []}
+              title="Shortage Ops Monthly Evolution"
+              type="ops"
+            />
+          </ExpandableChart>
+          
+          <ExpandableChart 
+            title="Shortage GMV Monthly Evolution" 
+            dataPoints={timeSeriesData?.data?.length || 12}
+          >
+            <ShortageStackedChart
+              data={timeSeriesData?.data || []}
+              title="Shortage GMV Monthly Evolution"
+              type="gmv"
+            />
+          </ExpandableChart>
+        </div>
+
+        {/* Cumulative Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <ExpandableChart 
+            title="Cumulated Shortage Ops" 
+            dataPoints={timeSeriesData?.data?.length || 12}
+          >
+            <ShortageCumulativeChart
+              data={timeSeriesData?.data || []}
+              title="Cumulated Shortage Ops"
+              type="ops"
+            />
+          </ExpandableChart>
+          
+          <ExpandableChart 
+            title="Cumulated Shortage GMV" 
+            dataPoints={timeSeriesData?.data?.length || 12}
+          >
+            <ShortageCumulativeChart
+              data={timeSeriesData?.data || []}
+              title="Cumulated Shortage GMV"
+              type="gmv"
+            />
+          </ExpandableChart>
+        </div>
+
+        {/* Ops & GMV Combined Chart */}
+        <ExpandableChart 
+          title="Shortage Ops & GMV Monthly Evolution" 
+          dataPoints={timeSeriesData?.data?.length || 12}
+        >
+          <ShortageOpsGMVCombo
+            data={timeSeriesData?.data || []}
+            title="Shortage Ops & GMV Monthly Evolution"
+          />
+        </ExpandableChart>
+      </div>
+
+      {/* Summary Card */}
+      {metrics && (
+        <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm animate-fade-in">
+          <h3 className="font-semibold text-gray-800 mb-4">Resumen</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div>
+              <p className="text-sm text-gray-500">Total Transferencias</p>
+              <p className="text-xl font-bold text-gray-800">
+                {formatNumber(metrics.net_bookings)}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Valor Total</p>
+              <p className="text-xl font-bold text-green-600">
+                {formatGMV(metrics.net_gmv)}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Tasa de Cancelación</p>
+              <p className={`text-xl font-bold ${metrics.pct_cancelled_bookings > 10 ? 'text-red-600' : 'text-gray-800'}`}>
+                {metrics.pct_cancelled_bookings.toFixed(2)}%
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Valor Medio por Transferencia</p>
+              <p className="text-xl font-bold text-amber-600">
+                {formatCurrency(metrics.average_ticket)}
+              </p>
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );

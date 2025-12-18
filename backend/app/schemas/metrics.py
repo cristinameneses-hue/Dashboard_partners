@@ -99,6 +99,29 @@ class TimeSeriesResponse(BaseModel):
     total_pharmacies: int = 0
 
 
+class ShortageTimeSeriesPoint(BaseModel):
+    """Time series data point for shortage charts."""
+    period: str  # Label like "Ene 25", "S12 2025", "Q1 2025", "2025"
+    gross_bookings: int = 0
+    cancelled_bookings: int = 0
+    net_bookings: int = 0
+    gross_gmv: float = 0.0
+    cancelled_gmv: float = 0.0
+    net_gmv: float = 0.0
+    pct_cancelled: float = 0.0
+    pct_cancelled_gmv: float = 0.0
+    cumulative_ops: int = 0
+    cumulative_gmv: float = 0.0
+    sending_pharmacies: int = 0
+    receiving_pharmacies: int = 0
+
+
+class ShortageTimeSeriesResponse(BaseModel):
+    """Response for shortage time series data."""
+    group_by: str  # week, month, quarter, year
+    data: List[ShortageTimeSeriesPoint]
+
+
 class PartnerSummary(BaseModel):
     """Summary of a single partner for the dashboard."""
     partner: str

@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Dict, Any, List
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.repositories.booking_repository import BookingRepository
@@ -7,6 +7,7 @@ from app.schemas.metrics import (
     PeriodFilter,
     ShortageMetrics,
     ShortageResponse,
+    ShortageTimeSeriesPoint,
 )
 from app.schemas.periods import get_period_dates
 
@@ -103,5 +104,74 @@ class ShortageService:
             period_end=end_date,
             metrics=metrics
         )
+
+    async def get_time_series(
+        self,
+        period: PeriodFilter,
+        group_by: str = "month"
+    ) -> Dict[str, Any]:
+        """Get shortage time series metrics grouped by period."""
+        
+        start_date, end_date = get_period_dates(period)
+        
+        raw_data = await self._booking_repo.get_shortage_time_series(
+            start_date, end_date, group_by
+        )
+        
+        result = []
+        cumulative_ops = 0
+        cumulative_gmv = 0.0
+        
+        for item in raw_data:
+            period_info = item.get("period", {})
+            
+            # Format period label
+            if group_by == "week":
+                label = f"S{period_info.get('week', 0)} {period_info.get('year', '')}"
+            elif group_by == "quarter":
+                label = f"Q{int(period_info.get('quarter', 0))} {period_info.get('year', '')}"
+            elif group_by == "year":
+                label = str(period_info.get('year', ''))
+            else:  # month
+                months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 
+                         'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+                month_idx = period_info.get('month', 1) - 1
+                label = f"{months[month_idx]} {str(period_info.get('year', ''))[-2:]}"
+            
+            gross_bookings = item.get("gross_bookings", 0)
+            cancelled_bookings = item.get("cancelled_bookings", 0)
+            net_bookings = item.get("net_bookings", 0)
+            gross_gmv = item.get("gross_gmv", 0)
+            cancelled_gmv = item.get("cancelled_gmv", 0)
+            net_gmv = item.get("net_gmv", 0)
+            
+            # Calculate percentages
+            pct_cancelled = (cancelled_bookings / gross_bookings * 100) if gross_bookings > 0 else 0
+            pct_cancelled_gmv = (cancelled_gmv / gross_gmv * 100) if gross_gmv > 0 else 0
+            
+            # Calculate cumulative values
+            cumulative_ops += gross_bookings
+            cumulative_gmv += gross_gmv
+            
+            result.append(ShortageTimeSeriesPoint(
+                period=label,
+                gross_bookings=gross_bookings,
+                cancelled_bookings=cancelled_bookings,
+                net_bookings=net_bookings,
+                gross_gmv=round(gross_gmv, 2),
+                cancelled_gmv=round(cancelled_gmv, 2),
+                net_gmv=round(net_gmv, 2),
+                pct_cancelled=round(pct_cancelled, 1),
+                pct_cancelled_gmv=round(pct_cancelled_gmv, 1),
+                cumulative_ops=cumulative_ops,
+                cumulative_gmv=round(cumulative_gmv, 2),
+                sending_pharmacies=item.get("sending_pharmacies", 0),
+                receiving_pharmacies=item.get("receiving_pharmacies", 0)
+            ))
+        
+        return {
+            "group_by": group_by,
+            "data": result
+        }
 
 

@@ -90,6 +90,28 @@ export interface ShortageResponse {
   metrics: ShortageMetrics;
 }
 
+// Shortage Time Series
+export interface ShortageTimeSeriesPoint {
+  period: string;
+  gross_bookings: number;
+  cancelled_bookings: number;
+  net_bookings: number;
+  gross_gmv: number;
+  cancelled_gmv: number;
+  net_gmv: number;
+  pct_cancelled: number;
+  pct_cancelled_gmv: number;
+  cumulative_ops: number;
+  cumulative_gmv: number;
+  sending_pharmacies: number;
+  receiving_pharmacies: number;
+}
+
+export interface ShortageTimeSeriesResponse {
+  group_by: string;
+  data: ShortageTimeSeriesPoint[];
+}
+
 // Partner Info
 export interface PartnerInfo {
   id: string;

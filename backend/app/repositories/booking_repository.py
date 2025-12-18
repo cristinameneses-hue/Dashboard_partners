@@ -632,4 +632,99 @@ class BookingRepository:
         cursor = self._collection.aggregate(pipeline)
         return await cursor.to_list(length=500)
 
+    async def get_shortage_time_series(
+        self,
+        start_date: datetime,
+        end_date: datetime,
+        group_by: str = "month"  # week, month, quarter, year
+    ) -> List[Dict[str, Any]]:
+        """
+        Get shortage metrics grouped by time period.
+        group_by: 'week', 'month', 'quarter', 'year'
+        """
+        cancelled_state = self._settings.cancelled_state_id
+        
+        # Define date grouping based on group_by parameter
+        if group_by == "week":
+            date_group = {
+                "year": {"$year": "$createdDate"},
+                "week": {"$isoWeek": "$createdDate"}
+            }
+            sort_fields = {"_id.year": 1, "_id.week": 1}
+        elif group_by == "quarter":
+            date_group = {
+                "year": {"$year": "$createdDate"},
+                "quarter": {
+                    "$ceil": {"$divide": [{"$month": "$createdDate"}, 3]}
+                }
+            }
+            sort_fields = {"_id.year": 1, "_id.quarter": 1}
+        elif group_by == "year":
+            date_group = {
+                "year": {"$year": "$createdDate"}
+            }
+            sort_fields = {"_id.year": 1}
+        else:  # month (default)
+            date_group = {
+                "year": {"$year": "$createdDate"},
+                "month": {"$month": "$createdDate"}
+            }
+            sort_fields = {"_id.year": 1, "_id.month": 1}
+        
+        pipeline = [
+            # Match shortage bookings (origin exists)
+            {
+                "$match": {
+                    "origin": {"$exists": True},
+                    "createdDate": {"$gte": start_date, "$lte": end_date}
+                }
+            },
+            {
+                "$addFields": {
+                    "gmv": self._gmv_calculation(),
+                    "is_cancelled": {"$eq": ["$state", cancelled_state]}
+                }
+            },
+            {
+                "$group": {
+                    "_id": date_group,
+                    "gross_bookings": {"$sum": 1},
+                    "cancelled_bookings": {
+                        "$sum": {"$cond": ["$is_cancelled", 1, 0]}
+                    },
+                    "gross_gmv": {"$sum": "$gmv"},
+                    "cancelled_gmv": {
+                        "$sum": {"$cond": ["$is_cancelled", "$gmv", 0]}
+                    },
+                    "unique_origins": {"$addToSet": "$origin"},
+                    "unique_targets": {"$addToSet": "$target"}
+                }
+            },
+            {"$sort": sort_fields},
+            {
+                "$project": {
+                    "_id": 0,
+                    "period": {
+                        k: v for k, v in {
+                            "year": "$_id.year",
+                            "month": "$_id.month" if group_by == "month" else None,
+                            "week": "$_id.week" if group_by == "week" else None,
+                            "quarter": "$_id.quarter" if group_by == "quarter" else None
+                        }.items() if v is not None
+                    },
+                    "gross_bookings": 1,
+                    "cancelled_bookings": 1,
+                    "net_bookings": {"$subtract": ["$gross_bookings", "$cancelled_bookings"]},
+                    "gross_gmv": self._round_to_2_decimals("$gross_gmv"),
+                    "cancelled_gmv": self._round_to_2_decimals("$cancelled_gmv"),
+                    "net_gmv": self._round_to_2_decimals({"$subtract": ["$gross_gmv", "$cancelled_gmv"]}),
+                    "sending_pharmacies": {"$size": "$unique_origins"},
+                    "receiving_pharmacies": {"$size": "$unique_targets"}
+                }
+            }
+        ]
+        
+        cursor = self._collection.aggregate(pipeline)
+        return await cursor.to_list(length=500)
+
 

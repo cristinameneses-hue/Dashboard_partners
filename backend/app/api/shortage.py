@@ -9,6 +9,7 @@ from app.schemas.metrics import (
     PeriodType,
     PeriodFilter,
     ShortageResponse,
+    ShortageTimeSeriesResponse,
 )
 
 router = APIRouter()
@@ -57,5 +58,45 @@ async def get_shortage_metrics(
     )
     
     return await service.get_metrics(period)
+
+
+@router.get("/timeseries", response_model=ShortageTimeSeriesResponse)
+async def get_shortage_time_series(
+    period_type: PeriodType = Query(
+        PeriodType.THIS_YEAR,
+        description="Period type for filtering"
+    ),
+    group_by: str = Query(
+        "month",
+        description="Group by: week, month, quarter, year"
+    ),
+    start_date: Optional[date] = Query(
+        None,
+        description="Start date for custom period (YYYY-MM-DD)"
+    ),
+    end_date: Optional[date] = Query(
+        None,
+        description="End date for custom period (YYYY-MM-DD)"
+    ),
+    service: ShortageService = Depends(get_shortage_service)
+):
+    """
+    Get shortage time series metrics for charts.
+    
+    Returns data grouped by the specified period (week, month, quarter, year).
+    Includes:
+    - Gross/Cancelled/Net bookings
+    - Gross/Cancelled/Net GMV
+    - % Cancelled (ops and gmv)
+    - Cumulative ops and GMV
+    - Sending/Receiving pharmacies per period
+    """
+    period = PeriodFilter(
+        period_type=period_type,
+        start_date=start_date,
+        end_date=end_date
+    )
+    
+    return await service.get_time_series(period, group_by)
 
 
