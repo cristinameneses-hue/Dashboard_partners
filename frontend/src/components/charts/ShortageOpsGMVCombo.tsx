@@ -68,6 +68,24 @@ function GMVLabel({ x, y, width, value }: any) {
   );
 }
 
+// Custom label for Ops value on the line points
+function OpsLabel({ x, y, value }: any) {
+  if (!value || value === 0) return null;
+  
+  return (
+    <text
+      x={x}
+      y={y - 12}
+      textAnchor="middle"
+      fill="#374151"
+      fontSize={10}
+      fontWeight={600}
+    >
+      {formatNumber(value)}
+    </text>
+  );
+}
+
 // Custom tooltip
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
@@ -177,7 +195,13 @@ export default function ShortageOpsGMVCombo({
               strokeDasharray="5 5"
               dot={{ fill: '#374151', r: 4 }}
               name="# Gross Monthly Ops"
-            />
+            >
+              <LabelList 
+                dataKey="gross_bookings" 
+                position="top" 
+                content={(props: any) => <OpsLabel {...props} />}
+              />
+            </Line>
           </ComposedChart>
         </ResponsiveContainer>
       </div>
