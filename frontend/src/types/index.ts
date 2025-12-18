@@ -93,23 +93,35 @@ export interface ShortageResponse {
 // Shortage Time Series
 export interface ShortageTimeSeriesPoint {
   period: string;
+  // Pharmacy metrics
+  total_pharmacies: number;
+  active_pharmacies: number;
+  sending_pharmacies: number;
+  receiving_pharmacies: number;
+  pct_active: number;
+  pct_sending: number;
+  pct_receiving: number;
+  // Order metrics
   gross_bookings: number;
   cancelled_bookings: number;
   net_bookings: number;
+  pct_cancelled: number;
+  delta_bookings: number;
+  // GMV metrics
   gross_gmv: number;
   cancelled_gmv: number;
   net_gmv: number;
-  pct_cancelled: number;
   pct_cancelled_gmv: number;
+  delta_gmv: number;
+  // Cumulative
   cumulative_ops: number;
   cumulative_gmv: number;
-  sending_pharmacies: number;
-  receiving_pharmacies: number;
 }
 
 export interface ShortageTimeSeriesResponse {
   group_by: string;
   data: ShortageTimeSeriesPoint[];
+  total_pharmacies: number;
 }
 
 // Partner Info

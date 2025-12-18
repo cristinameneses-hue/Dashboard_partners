@@ -118,9 +118,16 @@ class ShortageService:
             start_date, end_date, group_by
         )
         
+        # Get total pharmacies that have ever participated in shortage
+        total_pharmacies = await self._booking_repo.get_total_shortage_pharmacies(
+            start_date, end_date
+        )
+        
         result = []
         cumulative_ops = 0
         cumulative_gmv = 0.0
+        prev_gross_bookings = 0
+        prev_gross_gmv = 0.0
         
         for item in raw_data:
             period_info = item.get("period", {})
@@ -144,10 +151,22 @@ class ShortageService:
             gross_gmv = item.get("gross_gmv", 0)
             cancelled_gmv = item.get("cancelled_gmv", 0)
             net_gmv = item.get("net_gmv", 0)
+            sending_pharmacies = item.get("sending_pharmacies", 0)
+            receiving_pharmacies = item.get("receiving_pharmacies", 0)
+            active_pharmacies = item.get("active_pharmacies", 0)
             
             # Calculate percentages
             pct_cancelled = (cancelled_bookings / gross_bookings * 100) if gross_bookings > 0 else 0
             pct_cancelled_gmv = (cancelled_gmv / gross_gmv * 100) if gross_gmv > 0 else 0
+            
+            # Calculate pharmacy percentages (over total pharmacies)
+            pct_active = (active_pharmacies / total_pharmacies * 100) if total_pharmacies > 0 else 0
+            pct_sending = (sending_pharmacies / total_pharmacies * 100) if total_pharmacies > 0 else 0
+            pct_receiving = (receiving_pharmacies / total_pharmacies * 100) if total_pharmacies > 0 else 0
+            
+            # Calculate deltas (vs previous period)
+            delta_bookings = gross_bookings - prev_gross_bookings
+            delta_gmv = gross_gmv - prev_gross_gmv
             
             # Calculate cumulative values
             cumulative_ops += gross_bookings
@@ -155,23 +174,39 @@ class ShortageService:
             
             result.append(ShortageTimeSeriesPoint(
                 period=label,
+                # Pharmacy metrics
+                total_pharmacies=total_pharmacies,
+                active_pharmacies=active_pharmacies,
+                sending_pharmacies=sending_pharmacies,
+                receiving_pharmacies=receiving_pharmacies,
+                pct_active=round(pct_active, 1),
+                pct_sending=round(pct_sending, 1),
+                pct_receiving=round(pct_receiving, 1),
+                # Order metrics
                 gross_bookings=gross_bookings,
                 cancelled_bookings=cancelled_bookings,
                 net_bookings=net_bookings,
+                pct_cancelled=round(pct_cancelled, 1),
+                delta_bookings=delta_bookings,
+                # GMV metrics
                 gross_gmv=round(gross_gmv, 2),
                 cancelled_gmv=round(cancelled_gmv, 2),
                 net_gmv=round(net_gmv, 2),
-                pct_cancelled=round(pct_cancelled, 1),
                 pct_cancelled_gmv=round(pct_cancelled_gmv, 1),
+                delta_gmv=round(delta_gmv, 2),
+                # Cumulative
                 cumulative_ops=cumulative_ops,
-                cumulative_gmv=round(cumulative_gmv, 2),
-                sending_pharmacies=item.get("sending_pharmacies", 0),
-                receiving_pharmacies=item.get("receiving_pharmacies", 0)
+                cumulative_gmv=round(cumulative_gmv, 2)
             ))
+            
+            # Store current values for next iteration's delta
+            prev_gross_bookings = gross_bookings
+            prev_gross_gmv = gross_gmv
         
         return {
             "group_by": group_by,
-            "data": result
+            "data": result,
+            "total_pharmacies": total_pharmacies
         }
 
 

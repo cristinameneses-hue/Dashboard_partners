@@ -719,12 +719,73 @@ class BookingRepository:
                     "cancelled_gmv": self._round_to_2_decimals("$cancelled_gmv"),
                     "net_gmv": self._round_to_2_decimals({"$subtract": ["$gross_gmv", "$cancelled_gmv"]}),
                     "sending_pharmacies": {"$size": "$unique_origins"},
-                    "receiving_pharmacies": {"$size": "$unique_targets"}
+                    "receiving_pharmacies": {"$size": "$unique_targets"},
+                    # All unique pharmacies (union of origins and targets)
+                    "all_unique_pharmacies": {
+                        "$setUnion": ["$unique_origins", "$unique_targets"]
+                    }
+                }
+            },
+            {
+                "$addFields": {
+                    "active_pharmacies": {"$size": "$all_unique_pharmacies"}
+                }
+            },
+            {
+                "$project": {
+                    "all_unique_pharmacies": 0  # Remove the temp field from output
                 }
             }
         ]
         
         cursor = self._collection.aggregate(pipeline)
         return await cursor.to_list(length=500)
+
+    async def get_total_shortage_pharmacies(
+        self,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None
+    ) -> int:
+        """
+        Get total unique pharmacies that have participated in shortage
+        (either as origin or target).
+        """
+        match_stage: Dict[str, Any] = {
+            "origin": {"$exists": True}
+        }
+        
+        if start_date and end_date:
+            match_stage["createdDate"] = {
+                "$gte": start_date,
+                "$lte": end_date
+            }
+        
+        pipeline = [
+            {"$match": match_stage},
+            {
+                "$group": {
+                    "_id": None,
+                    "origins": {"$addToSet": "$origin"},
+                    "targets": {"$addToSet": "$target"}
+                }
+            },
+            {
+                "$project": {
+                    "all_pharmacies": {"$setUnion": ["$origins", "$targets"]}
+                }
+            },
+            {
+                "$project": {
+                    "total": {"$size": "$all_pharmacies"}
+                }
+            }
+        ]
+        
+        cursor = self._collection.aggregate(pipeline)
+        results = await cursor.to_list(length=1)
+        
+        if results:
+            return results[0].get("total", 0)
+        return 0
 
 

@@ -102,24 +102,36 @@ class TimeSeriesResponse(BaseModel):
 class ShortageTimeSeriesPoint(BaseModel):
     """Time series data point for shortage charts."""
     period: str  # Label like "Ene 25", "S12 2025", "Q1 2025", "2025"
+    # Pharmacy metrics
+    total_pharmacies: int = 0  # Total pharmacies in shortage system
+    active_pharmacies: int = 0  # Union of sending + receiving (participated in period)
+    sending_pharmacies: int = 0  # Pharmacies that sent at least 1 order
+    receiving_pharmacies: int = 0  # Pharmacies that received at least 1 order
+    pct_active: float = 0.0  # % active pharmacies (over total)
+    pct_sending: float = 0.0  # % sending pharmacies (over total)
+    pct_receiving: float = 0.0  # % receiving pharmacies (over total)
+    # Order metrics
     gross_bookings: int = 0
     cancelled_bookings: int = 0
     net_bookings: int = 0
+    pct_cancelled: float = 0.0
+    delta_bookings: int = 0  # Delta vs previous period
+    # GMV metrics
     gross_gmv: float = 0.0
     cancelled_gmv: float = 0.0
     net_gmv: float = 0.0
-    pct_cancelled: float = 0.0
     pct_cancelled_gmv: float = 0.0
+    delta_gmv: float = 0.0  # Delta vs previous period
+    # Cumulative metrics
     cumulative_ops: int = 0
     cumulative_gmv: float = 0.0
-    sending_pharmacies: int = 0
-    receiving_pharmacies: int = 0
 
 
 class ShortageTimeSeriesResponse(BaseModel):
     """Response for shortage time series data."""
     group_by: str  # week, month, quarter, year
     data: List[ShortageTimeSeriesPoint]
+    total_pharmacies: int = 0  # Total pharmacies in shortage system
 
 
 class PartnerSummary(BaseModel):

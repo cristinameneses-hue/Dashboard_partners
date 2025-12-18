@@ -5,6 +5,7 @@ import ExpandableChart from '../components/charts/ExpandableChart';
 import ShortageStackedChart from '../components/charts/ShortageStackedChart';
 import ShortageCumulativeChart from '../components/charts/ShortageCumulativeChart';
 import ShortageOpsGMVCombo from '../components/charts/ShortageOpsGMVCombo';
+import ShortageTimeSeriesTable from '../components/charts/ShortageTimeSeriesTable';
 import { useShortageMetrics, useShortageTimeSeries, ChartGroupBy } from '../hooks/useShortage';
 import type { PeriodType } from '../types';
 
@@ -51,6 +52,7 @@ export default function Shortage() {
   const [customStart, setCustomStart] = useState<string>();
   const [customEnd, setCustomEnd] = useState<string>();
   const [chartGroupBy, setChartGroupBy] = useState<ChartGroupBy>('month');
+  const [tableGroupBy, setTableGroupBy] = useState<ChartGroupBy>('month');
 
   // Period type for charts (always show year data for trends)
   const chartPeriodType: PeriodType = 'this_year';
@@ -64,6 +66,12 @@ export default function Shortage() {
   const { data: timeSeriesData } = useShortageTimeSeries(
     chartPeriodType,
     chartGroupBy
+  );
+
+  // Separate time series data for the table with its own groupBy
+  const { data: tableTimeSeriesData } = useShortageTimeSeries(
+    chartPeriodType,
+    tableGroupBy
   );
 
   const handlePeriodChange = (
@@ -355,6 +363,36 @@ export default function Shortage() {
             title="Shortage Ops & GMV Monthly Evolution"
           />
         </ExpandableChart>
+      </div>
+
+      {/* Data Table Section */}
+      <div className="space-y-4 animate-fade-in">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-800">📊 Tabla de Datos</h2>
+          <div className="flex items-center gap-2 bg-white rounded-lg p-1 border border-gray-200">
+            {CHART_GROUP_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                onClick={() => setTableGroupBy(option.value)}
+                className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                  tableGroupBy === option.value
+                    ? 'bg-[#00A651] text-white'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        
+        {tableTimeSeriesData?.data && (
+          <ShortageTimeSeriesTable
+            data={tableTimeSeriesData.data}
+            groupBy={tableGroupBy}
+            title="Métricas de Shortage"
+          />
+        )}
       </div>
 
       {/* Summary Card */}
