@@ -105,36 +105,40 @@ export default function Shortage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between animate-fade-in">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            Shortage Metrics
-          </h1>
-          <p className="text-gray-500">
-            Métricas de transferencias internas entre farmacias
-          </p>
-        </div>
-        {data && (
-          <div className="text-right bg-white rounded-lg px-4 py-2 shadow-sm border border-gray-200">
-            <p className="text-xs text-gray-400">Período</p>
-            <p className="text-sm text-gray-700 font-medium">
-              {new Date(data.period_start).toLocaleDateString('es-ES')} - {new Date(data.period_end).toLocaleDateString('es-ES')}
-            </p>
-          </div>
-        )}
+      <div className="animate-fade-in">
+        <h1 className="text-3xl font-bold text-gray-800 mb-2">
+          Shortage Metrics
+        </h1>
+        <p className="text-gray-500">
+          Métricas de transferencias internas entre farmacias
+        </p>
       </div>
 
-      {/* Filter Bar */}
-      <div className="card p-4 animate-fade-in stagger-1 relative" style={{ zIndex: 100 }}>
-        <FilterBar
-          periodType={periodType}
-          onPeriodChange={handlePeriodChange}
-          customStart={customStart}
-          customEnd={customEnd}
-          selectedPartners={[]}
-          onPartnersChange={() => {}}
-          showPartnerFilter={false}
-        />
+      {/* Sticky Filter Bar with Period */}
+      <div className="sticky top-0 z-50 -mx-8 px-8 py-3 bg-gray-50/95 backdrop-blur-sm border-b border-gray-200 shadow-sm">
+        <div className="card p-4" style={{ zIndex: 100 }}>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex-1">
+              <FilterBar
+                periodType={periodType}
+                onPeriodChange={handlePeriodChange}
+                customStart={customStart}
+                customEnd={customEnd}
+                selectedPartners={[]}
+                onPartnersChange={() => {}}
+                showPartnerFilter={false}
+              />
+            </div>
+            {data && (
+              <div className="text-right bg-white rounded-lg px-4 py-2 shadow-sm border border-gray-200 flex-shrink-0">
+                <p className="text-xs text-gray-400">Período seleccionado</p>
+                <p className="text-sm text-gray-700 font-medium">
+                  {new Date(data.period_start).toLocaleDateString('es-ES')} - {new Date(data.period_end).toLocaleDateString('es-ES')}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Main KPIs */}
