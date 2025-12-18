@@ -14,6 +14,8 @@ interface ShortageCumulativeChartProps {
   data: ShortageTimeSeriesPoint[];
   title: string;
   type: 'ops' | 'gmv';
+  height?: number;
+  showHeader?: boolean;
 }
 
 // Format numbers with thousands separator
@@ -101,13 +103,21 @@ function CustomTooltip({ active, payload, label, type }: any) {
   );
 }
 
-export default function ShortageCumulativeChart({ data, title, type }: ShortageCumulativeChartProps) {
+export default function ShortageCumulativeChart({ 
+  data, 
+  title, 
+  type,
+  height = 320,
+  showHeader = true 
+}: ShortageCumulativeChartProps) {
   if (!data || data.length === 0) {
     return (
       <div className="card">
-        <div className="card-header">
-          <h3 className="font-semibold text-gray-800">{title}</h3>
-        </div>
+        {showHeader && (
+          <div className="card-header">
+            <h3 className="font-semibold text-gray-800">{title}</h3>
+          </div>
+        )}
         <div className="card-body h-64 flex items-center justify-center text-gray-500">
           No hay datos disponibles
         </div>
@@ -127,11 +137,13 @@ export default function ShortageCumulativeChart({ data, title, type }: ShortageC
 
   return (
     <div className="card">
-      <div className="card-header">
-        <h3 className="font-semibold text-gray-800">{title}</h3>
-      </div>
+      {showHeader && (
+        <div className="card-header">
+          <h3 className="font-semibold text-gray-800">{title}</h3>
+        </div>
+      )}
       <div className="card-body">
-        <ResponsiveContainer width="100%" height={320}>
+        <ResponsiveContainer width="100%" height={height}>
           <BarChart data={data} margin={{ top: 30, right: 30, left: 20, bottom: 5 }}>
             <XAxis 
               dataKey="period" 

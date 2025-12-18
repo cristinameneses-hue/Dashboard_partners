@@ -14,6 +14,8 @@ import type { ShortageTimeSeriesPoint } from '../../types';
 interface ShortageOpsGMVComboProps {
   data: ShortageTimeSeriesPoint[];
   title: string;
+  height?: number;
+  showHeader?: boolean;
 }
 
 // Format numbers with thousands separator
@@ -94,13 +96,20 @@ function CustomTooltip({ active, payload, label }: any) {
   );
 }
 
-export default function ShortageOpsGMVCombo({ data, title }: ShortageOpsGMVComboProps) {
+export default function ShortageOpsGMVCombo({ 
+  data, 
+  title,
+  height = 320,
+  showHeader = true 
+}: ShortageOpsGMVComboProps) {
   if (!data || data.length === 0) {
     return (
       <div className="card">
-        <div className="card-header">
-          <h3 className="font-semibold text-gray-800">{title}</h3>
-        </div>
+        {showHeader && (
+          <div className="card-header">
+            <h3 className="font-semibold text-gray-800">{title}</h3>
+          </div>
+        )}
         <div className="card-body h-64 flex items-center justify-center text-gray-500">
           No hay datos disponibles
         </div>
@@ -110,11 +119,13 @@ export default function ShortageOpsGMVCombo({ data, title }: ShortageOpsGMVCombo
 
   return (
     <div className="card">
-      <div className="card-header">
-        <h3 className="font-semibold text-gray-800">{title}</h3>
-      </div>
+      {showHeader && (
+        <div className="card-header">
+          <h3 className="font-semibold text-gray-800">{title}</h3>
+        </div>
+      )}
       <div className="card-body">
-        <ResponsiveContainer width="100%" height={320}>
+        <ResponsiveContainer width="100%" height={height}>
           <ComposedChart data={data} margin={{ top: 30, right: 60, left: 20, bottom: 5 }}>
             <XAxis 
               dataKey="period" 
