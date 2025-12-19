@@ -1,5 +1,7 @@
 // Period Types
 export type PeriodType = 
+  | 'today'
+  | 'yesterday'
   | 'this_year' 
   | 'last_year' 
   | 'this_month' 
@@ -148,16 +150,18 @@ export interface PartnerPharmacyDistribution {
 
 // Period options for UI
 export const PERIOD_OPTIONS: { value: PeriodType; label: string; group: string }[] = [
-  { value: 'this_month', label: 'Este Mes', group: 'Mes' },
-  { value: 'last_month', label: 'Mes Anterior', group: 'Mes' },
+  { value: 'today', label: 'Hoy', group: 'Día' },
+  { value: 'yesterday', label: 'Ayer', group: 'Día' },
   { value: 'this_week', label: 'Esta Semana', group: 'Semana' },
   { value: 'last_week', label: 'Semana Anterior', group: 'Semana' },
-  { value: 'this_year', label: 'Este Año', group: 'Año' },
-  { value: 'last_year', label: 'Año Anterior', group: 'Año' },
+  { value: 'this_month', label: 'Este Mes', group: 'Mes' },
+  { value: 'last_month', label: 'Mes Anterior', group: 'Mes' },
   { value: 'q1', label: 'Q1 (Ene-Mar)', group: 'Trimestre' },
   { value: 'q2', label: 'Q2 (Abr-Jun)', group: 'Trimestre' },
   { value: 'q3', label: 'Q3 (Jul-Sep)', group: 'Trimestre' },
   { value: 'q4', label: 'Q4 (Oct-Dic)', group: 'Trimestre' },
+  { value: 'this_year', label: 'Este Año', group: 'Año' },
+  { value: 'last_year', label: 'Año Anterior', group: 'Año' },
   { value: 'custom', label: 'Personalizado', group: 'Custom' },
 ];
 

@@ -6,6 +6,8 @@ from enum import Enum
 
 class PeriodType(str, Enum):
     """Available period types for filtering."""
+    TODAY = "today"
+    YESTERDAY = "yesterday"
     THIS_YEAR = "this_year"
     LAST_YEAR = "last_year"
     THIS_MONTH = "this_month"

@@ -15,7 +15,16 @@ def get_period_dates(period: PeriodFilter) -> Tuple[datetime, datetime]:
     today = now.replace(hour=0, minute=0, second=0, microsecond=0)
     current_year = now.year
     
-    if period.period_type == PeriodType.THIS_YEAR:
+    if period.period_type == PeriodType.TODAY:
+        start = today
+        end = now
+        
+    elif period.period_type == PeriodType.YESTERDAY:
+        yesterday = today - timedelta(days=1)
+        start = yesterday
+        end = yesterday.replace(hour=23, minute=59, second=59)
+        
+    elif period.period_type == PeriodType.THIS_YEAR:
         start = datetime(current_year, 1, 1)
         end = now
         
