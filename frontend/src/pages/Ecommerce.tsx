@@ -105,7 +105,20 @@ export default function Ecommerce() {
   );
 
   // Time series data for table - use the selected period directly for historical data
-  const tablePeriodType = periodType === 'last_year' ? 'last_year' : chartPeriodType;
+  // For historical periods (last_year, last_month, last_week), use the period directly
+  // For current periods, use the parent year to show trends
+  const getTablePeriodType = (): PeriodType => {
+    // Historical periods - use directly
+    if (['last_year', 'last_month', 'last_week', 'yesterday'].includes(periodType)) {
+      return periodType;
+    }
+    // Custom period - use as-is
+    if (periodType === 'custom') return 'custom';
+    // Current year/month/week/day - show year trends
+    return chartPeriodType;
+  };
+  
+  const tablePeriodType = getTablePeriodType();
   const { data: tableTimeSeriesData } = useTimeSeries(
     tablePeriodType,
     tableGroupBy,
