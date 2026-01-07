@@ -5,6 +5,8 @@ interface TimeSeriesTableProps {
   data: TimeSeriesPoint[];
   groupBy: string;
   title?: string;
+  isExpanded?: boolean;
+  showHeader?: boolean;
 }
 
 // Format numbers with thousands separator
@@ -91,7 +93,7 @@ const rows = [
   { key: 'average_ticket', label: 'Avg. order value', format: formatCurrency },
 ];
 
-export default function TimeSeriesTable({ data, groupBy, title }: TimeSeriesTableProps) {
+export default function TimeSeriesTable({ data, groupBy, title, isExpanded = false, showHeader = true }: TimeSeriesTableProps) {
   // Calculate pct_cancelled and pct_cancelled_gmv for each data point
   const enrichedData = useMemo(() => {
     return data.map(point => ({
@@ -131,14 +133,14 @@ export default function TimeSeriesTable({ data, groupBy, title }: TimeSeriesTabl
   }
 
   return (
-    <div className="card overflow-hidden">
-      {title && (
+    <div className={`card overflow-hidden ${isExpanded ? 'border-0 shadow-none' : ''}`}>
+      {title && showHeader && (
         <div className="card-header bg-gray-50">
           <h3 className="font-semibold text-gray-800">{title}</h3>
         </div>
       )}
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+      <div className={`overflow-x-auto ${isExpanded ? 'overflow-visible' : ''}`}>
+        <table className={`w-full ${isExpanded ? 'text-base' : 'text-sm'}`}>
           <thead>
             <tr className="bg-gray-700 text-white">
               <th className="px-3 py-2 text-left font-semibold sticky left-0 bg-gray-700 z-10 min-w-[160px]">

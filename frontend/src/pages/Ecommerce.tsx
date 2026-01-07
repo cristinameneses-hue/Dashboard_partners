@@ -8,6 +8,7 @@ import LineChartComponent from '../components/charts/LineChartComponent';
 import PharmacyComboChart from '../components/charts/PharmacyComboChart';
 import TimeSeriesTable from '../components/charts/TimeSeriesTable';
 import ExpandableChart from '../components/charts/ExpandableChart';
+import ExpandableTable from '../components/charts/ExpandableTable';
 import PartnerStackedChart, { ViewMode } from '../components/charts/PartnerStackedChart';
 import { useEcommerceMetrics, useTimeSeries, usePartnerTimeSeries, ChartGroupBy } from '../hooks/useEcommerce';
 import type { PeriodType, EcommerceMetrics } from '../types';
@@ -548,11 +549,16 @@ export default function Ecommerce() {
           </div>
         </div>
         
-        <TimeSeriesTable
-          data={tableTimeSeriesData?.data || []}
-          groupBy={tableGroupBy}
+        <ExpandableTable 
           title={`Métricas ${tableGroupBy === 'week' ? 'Semanales' : tableGroupBy === 'month' ? 'Mensuales' : tableGroupBy === 'quarter' ? 'Trimestrales' : 'Anuales'}`}
-        />
+          dataColumns={tableTimeSeriesData?.data?.length || 12}
+        >
+          <TimeSeriesTable
+            data={tableTimeSeriesData?.data || []}
+            groupBy={tableGroupBy}
+            title={`Métricas ${tableGroupBy === 'week' ? 'Semanales' : tableGroupBy === 'month' ? 'Mensuales' : tableGroupBy === 'quarter' ? 'Trimestrales' : 'Anuales'}`}
+          />
+        </ExpandableTable>
       </div>
 
       {/* Partners Compilados Section */}

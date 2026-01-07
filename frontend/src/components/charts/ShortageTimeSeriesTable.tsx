@@ -5,6 +5,8 @@ interface ShortageTimeSeriesTableProps {
   data: ShortageTimeSeriesPoint[];
   groupBy: string;
   title?: string;
+  isExpanded?: boolean;
+  showHeader?: boolean;
 }
 
 // Format numbers with thousands separator
@@ -132,7 +134,7 @@ const rows = [
   { key: 'pct_growth_gmv', label: '% Crecimiento GMV', format: formatGrowthPercent },
 ];
 
-export default function ShortageTimeSeriesTable({ data, groupBy, title }: ShortageTimeSeriesTableProps) {
+export default function ShortageTimeSeriesTable({ data, groupBy, title, isExpanded = false, showHeader = true }: ShortageTimeSeriesTableProps) {
   // Get all values for a specific metric (for heatmap calculation)
   const getMetricValues = (metric: string): number[] => {
     return data.map(d => (d as any)[metric] || 0);
@@ -189,14 +191,14 @@ export default function ShortageTimeSeriesTable({ data, groupBy, title }: Shorta
   }
 
   return (
-    <div className="card overflow-hidden">
-      {title && (
+    <div className={`card overflow-hidden ${isExpanded ? 'border-0 shadow-none' : ''}`}>
+      {title && showHeader && (
         <div className="card-header bg-gray-50">
           <h3 className="font-semibold text-gray-800">{title}</h3>
         </div>
       )}
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+      <div className={`overflow-x-auto ${isExpanded ? 'overflow-visible' : ''}`}>
+        <table className={`w-full ${isExpanded ? 'text-base' : 'text-sm'}`}>
           <thead>
             <tr className="bg-gray-700 text-white">
               <th className="px-3 py-2 text-left font-semibold sticky left-0 bg-gray-700 z-10 min-w-[180px]">

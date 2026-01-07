@@ -2,6 +2,7 @@ import { useState } from 'react';
 import FilterBar from '../components/FilterBar';
 import MetricCard from '../components/MetricCard';
 import ExpandableChart from '../components/charts/ExpandableChart';
+import ExpandableTable from '../components/charts/ExpandableTable';
 import ShortageStackedChart from '../components/charts/ShortageStackedChart';
 import ShortageCumulativeChart from '../components/charts/ShortageCumulativeChart';
 import ShortageOpsGMVCombo from '../components/charts/ShortageOpsGMVCombo';
@@ -400,11 +401,16 @@ export default function Shortage() {
         </div>
         
         {tableTimeSeriesData?.data && (
-          <ShortageTimeSeriesTable
-            data={tableTimeSeriesData.data}
-            groupBy={tableGroupBy}
+          <ExpandableTable 
             title="Métricas de Shortage"
-          />
+            dataColumns={tableTimeSeriesData.data.length}
+          >
+            <ShortageTimeSeriesTable
+              data={tableTimeSeriesData.data}
+              groupBy={tableGroupBy}
+              title="Métricas de Shortage"
+            />
+          </ExpandableTable>
         )}
       </div>
 
