@@ -283,8 +283,10 @@ class BookingRepository:
         
         # Define date grouping based on group_by parameter
         if group_by == "week":
+            # Use $isoWeekYear to correctly handle year boundaries for ISO weeks
+            # This ensures Dec 29-31 are grouped with their correct ISO week year
             date_group = {
-                "year": {"$year": "$createdDate"},
+                "year": {"$isoWeekYear": "$createdDate"},
                 "week": {"$isoWeek": "$createdDate"}
             }
             sort_fields = {"_id.year": 1, "_id.week": 1}
@@ -551,8 +553,9 @@ class BookingRepository:
         
         # Define date grouping based on group_by parameter
         if group_by == "week":
+            # Use $isoWeekYear to correctly handle year boundaries for ISO weeks
             date_group = {
-                "year": {"$year": "$createdDate"},
+                "year": {"$isoWeekYear": "$createdDate"},
                 "week": {"$isoWeek": "$createdDate"}
             }
             sort_fields = {"_id.year": 1, "_id.week": 1}
@@ -646,8 +649,9 @@ class BookingRepository:
         
         # Define date grouping based on group_by parameter
         if group_by == "week":
+            # Use $isoWeekYear to correctly handle year boundaries for ISO weeks
             date_group = {
-                "year": {"$year": "$createdDate"},
+                "year": {"$isoWeekYear": "$createdDate"},
                 "week": {"$isoWeek": "$createdDate"}
             }
             sort_fields = {"_id.year": 1, "_id.week": 1}
