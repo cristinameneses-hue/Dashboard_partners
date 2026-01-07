@@ -84,8 +84,17 @@ export default function Ecommerce() {
     customEnd
   );
 
-  // Time series for charts - use this_year by default for charts
-  const chartPeriodType = periodType === 'custom' ? 'custom' : 'this_year';
+  // Time series for charts - respect the selected period
+  // For day/week/month periods, show the parent year; for year periods, use as-is
+  const getChartPeriodType = (): PeriodType => {
+    if (periodType === 'custom') return 'custom';
+    if (periodType === 'last_year') return 'last_year';
+    if (periodType === 'this_year') return 'this_year';
+    // For other periods (today, yesterday, week, month, quarter), show current year trends
+    return 'this_year';
+  };
+  
+  const chartPeriodType = getChartPeriodType();
   const { data: timeSeriesData } = useTimeSeries(
     chartPeriodType,
     chartGroupBy,
@@ -94,9 +103,10 @@ export default function Ecommerce() {
     periodType === 'custom' ? customEnd : undefined
   );
 
-  // Time series data for table (with its own groupBy)
+  // Time series data for table - use the selected period directly for historical data
+  const tablePeriodType = periodType === 'last_year' ? 'last_year' : chartPeriodType;
   const { data: tableTimeSeriesData } = useTimeSeries(
-    chartPeriodType,
+    tablePeriodType,
     tableGroupBy,
     selectedPartners.length > 0 ? selectedPartners : undefined,
     periodType === 'custom' ? customStart : undefined,

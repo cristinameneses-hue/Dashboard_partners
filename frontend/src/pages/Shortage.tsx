@@ -54,8 +54,16 @@ export default function Shortage() {
   const [chartGroupBy, setChartGroupBy] = useState<ChartGroupBy>('month');
   const [tableGroupBy, setTableGroupBy] = useState<ChartGroupBy>('month');
 
-  // Period type for charts (always show year data for trends)
-  const chartPeriodType: PeriodType = 'this_year';
+  // Period type for charts - respect the selected period for historical data
+  const getChartPeriodType = (): PeriodType => {
+    if (periodType === 'custom') return 'custom';
+    if (periodType === 'last_year') return 'last_year';
+    if (periodType === 'this_year') return 'this_year';
+    // For other periods (today, yesterday, week, month, quarter), show current year trends
+    return 'this_year';
+  };
+  
+  const chartPeriodType = getChartPeriodType();
 
   const { data, loading, error } = useShortageMetrics(
     periodType,
@@ -65,13 +73,18 @@ export default function Shortage() {
 
   const { data: timeSeriesData } = useShortageTimeSeries(
     chartPeriodType,
-    chartGroupBy
+    chartGroupBy,
+    periodType === 'custom' ? customStart : undefined,
+    periodType === 'custom' ? customEnd : undefined
   );
 
-  // Separate time series data for the table with its own groupBy
+  // Separate time series data for the table - use selected period for historical data
+  const tablePeriodType = periodType === 'last_year' ? 'last_year' : chartPeriodType;
   const { data: tableTimeSeriesData } = useShortageTimeSeries(
-    chartPeriodType,
-    tableGroupBy
+    tablePeriodType,
+    tableGroupBy,
+    periodType === 'custom' ? customStart : undefined,
+    periodType === 'custom' ? customEnd : undefined
   );
 
   const handlePeriodChange = (
