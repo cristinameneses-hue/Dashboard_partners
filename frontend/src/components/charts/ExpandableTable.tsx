@@ -29,25 +29,56 @@ export default function ExpandableTable({
     return children;
   };
 
-  // Download table as image
+  // Download table as image (captures full table including scrolled content)
   const handleDownload = async () => {
     if (!tableRef.current || isDownloading) return;
     
     setIsDownloading(true);
     try {
-      // Get the table element inside the ref
-      const tableElement = tableRef.current.querySelector('.card') || tableRef.current;
+      // Get the card and scrollable container
+      const cardElement = tableRef.current.querySelector('.card') as HTMLElement;
+      const scrollContainer = tableRef.current.querySelector('.overflow-x-auto') as HTMLElement;
+      const tableElement = tableRef.current.querySelector('table') as HTMLElement;
       
-      const canvas = await html2canvas(tableElement as HTMLElement, {
+      if (!cardElement || !tableElement) {
+        throw new Error('Table elements not found');
+      }
+      
+      // Store original styles
+      const originalCardOverflow = cardElement.style.overflow;
+      const originalCardWidth = cardElement.style.width;
+      const originalContainerOverflow = scrollContainer?.style.overflow || '';
+      const originalContainerWidth = scrollContainer?.style.width || '';
+      
+      // Temporarily expand to show full content
+      cardElement.style.overflow = 'visible';
+      cardElement.style.width = 'fit-content';
+      if (scrollContainer) {
+        scrollContainer.style.overflow = 'visible';
+        scrollContainer.style.width = 'fit-content';
+      }
+      
+      // Wait for reflow
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const canvas = await html2canvas(cardElement, {
         backgroundColor: '#ffffff',
         scale: 2, // Higher resolution
         logging: false,
         useCORS: true,
-        scrollX: 0,
-        scrollY: 0,
-        windowWidth: tableElement.scrollWidth,
-        windowHeight: tableElement.scrollHeight
+        width: tableElement.scrollWidth + 40, // Add padding
+        height: cardElement.scrollHeight,
+        windowWidth: tableElement.scrollWidth + 100,
+        windowHeight: cardElement.scrollHeight + 100
       });
+      
+      // Restore original styles
+      cardElement.style.overflow = originalCardOverflow;
+      cardElement.style.width = originalCardWidth;
+      if (scrollContainer) {
+        scrollContainer.style.overflow = originalContainerOverflow;
+        scrollContainer.style.width = originalContainerWidth;
+      }
       
       const link = document.createElement('a');
       link.download = `${title.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.png`;
