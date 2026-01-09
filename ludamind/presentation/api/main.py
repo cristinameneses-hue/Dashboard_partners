@@ -72,19 +72,38 @@ def create_app(container: Optional[DIContainer] = None) -> FastAPI:
         openapi_url="/openapi.json"
     )
     
-    # Configure CORS
+    # Configure CORS - SECURITY: Use specific origins, not wildcards
+    # Get allowed origins from environment or use safe defaults
+    import os
+    cors_origins_str = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000")
+    allowed_origins = [origin.strip() for origin in cors_origins_str.split(",")]
+
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # Configure appropriately for production
+        allow_origins=allowed_origins,  # Specific origins only
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
     )
     
+    # Add security headers middleware
+    @app.middleware("http")
+    async def add_security_headers(request: Request, call_next):
+        response = await call_next(request)
+        # Security headers to prevent common attacks
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        # HSTS only in production (when using HTTPS)
+        if os.getenv("ENVIRONMENT") == "production":
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        return response
+
     # Add custom middleware
     app.add_middleware(ErrorHandlerMiddleware)
     app.add_middleware(LoggingMiddleware)
-    # app.add_middleware(RateLimitMiddleware)  # Enable when ready
+    app.add_middleware(RateLimitMiddleware)  # Rate limiting enabled
     
     # Include routers
     app.include_router(health_router.router, tags=["Health"])

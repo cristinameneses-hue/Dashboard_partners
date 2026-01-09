@@ -17,9 +17,14 @@ db = Database()
 async def connect_to_mongo() -> None:
     """Establish connection to MongoDB."""
     settings = get_settings()
-    db.client = AsyncIOMotorClient(settings.mongodb_url)
+    # Use a short timeout to avoid blocking startup
+    db.client = AsyncIOMotorClient(
+        settings.mongodb_url,
+        serverSelectionTimeoutMS=5000,  # 5 second timeout
+        connectTimeoutMS=5000
+    )
     db.db = db.client[settings.database_name]
-    
+
     # Test connection
     try:
         await db.client.admin.command('ping')

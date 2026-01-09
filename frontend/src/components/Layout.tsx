@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import LudaLogo from './LudaLogo';
 import LudaLogoFull from './LudaLogoFull';
+import { useAuth } from '../contexts/AuthContext';
 
 interface LayoutProps {
   children: ReactNode;
@@ -15,6 +16,7 @@ const navItems = [
 
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
+  const { user, logout } = useAuth();
 
   return (
     <div className="h-screen flex bg-gray-50 overflow-hidden">
@@ -66,10 +68,28 @@ export default function Layout({ children }: LayoutProps) {
               </p>
             </div>
             <div className="flex items-center gap-4">
-              <div className="text-right">
-                <p className="text-xs text-gray-400">Última actualización</p>
-                <p className="text-sm text-gray-600">{new Date().toLocaleString('es-ES')}</p>
-              </div>
+              {user && (
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-gray-700">{user.name}</p>
+                    <p className="text-xs text-gray-400">{user.email}</p>
+                  </div>
+                  {user.picture && (
+                    <img
+                      src={user.picture}
+                      alt={user.name}
+                      className="w-10 h-10 rounded-full border-2 border-purple-200"
+                    />
+                  )}
+                  <button
+                    onClick={logout}
+                    className="ml-2 px-3 py-1.5 text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Cerrar sesion"
+                  >
+                    Salir
+                  </button>
+                </div>
+              )}
               <LudaLogo size={40} />
             </div>
           </div>
