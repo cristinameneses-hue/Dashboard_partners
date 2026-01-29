@@ -9,9 +9,9 @@ interface LayoutProps {
 }
 
 const navItems = [
-  { path: '/', label: 'Ecommerce', icon: '📊', description: 'Métricas de partners' },
-  { path: '/shortage', label: 'Shortage', icon: '🔄', description: 'Transferencias internas' },
-  { path: '/luda-mind', label: 'Luda Mind', icon: '🧠', description: 'Consultas IA' },
+  { path: '/', label: 'Ecommerce', icon: '📊', description: 'Partner metrics' },
+  { path: '/shortage', label: 'Shortage', icon: '🔄', description: 'Internal transfers' },
+  { path: '/luda-mind', label: 'Luda Mind', icon: '🧠', description: 'AI queries' },
 ];
 
 export default function Layout({ children }: LayoutProps) {
@@ -64,7 +64,7 @@ export default function Layout({ children }: LayoutProps) {
                 {location.pathname === '/' ? 'Ecommerce Dashboard' : location.pathname === '/luda-mind' ? 'Luda Mind' : 'Shortage Dashboard'}
               </h2>
               <p className="text-sm text-gray-500">
-                Panel de control y métricas
+                Control panel and metrics
               </p>
             </div>
             <div className="flex items-center gap-4">
@@ -84,9 +84,9 @@ export default function Layout({ children }: LayoutProps) {
                   <button
                     onClick={logout}
                     className="ml-2 px-3 py-1.5 text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    title="Cerrar sesion"
+                    title="Log out"
                   >
-                    Salir
+                    Logout
                   </button>
                 </div>
               )}
