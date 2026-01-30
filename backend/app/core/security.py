@@ -2,16 +2,77 @@
 Security module for JWT and Google OAuth authentication.
 """
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, Set
 from jose import JWTError, jwt
 from fastapi import HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 import os
+import threading
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Configuration from settings (loaded from .env via pydantic)
 from .config import get_settings
+
+
+# =============================================================================
+# TOKEN BLACKLIST SYSTEM
+# =============================================================================
+# Simple in-memory blacklist with automatic cleanup
+# For production with multiple instances, use Redis instead
+
+class TokenBlacklist:
+    """
+    Thread-safe token blacklist for JWT revocation.
+    Stores token JTIs (JWT IDs) or full tokens with expiration cleanup.
+    """
+
+    def __init__(self):
+        self._blacklist: Set[str] = set()
+        self._expiry_times: dict = {}  # token -> expiry_timestamp
+        self._lock = threading.Lock()
+
+    def add(self, token: str, expires_at: datetime) -> None:
+        """Add a token to the blacklist."""
+        with self._lock:
+            self._blacklist.add(token)
+            self._expiry_times[token] = expires_at
+            self._cleanup_expired()
+
+    def is_blacklisted(self, token: str) -> bool:
+        """Check if a token is blacklisted."""
+        with self._lock:
+            self._cleanup_expired()
+            return token in self._blacklist
+
+    def _cleanup_expired(self) -> None:
+        """Remove expired tokens from blacklist to prevent memory growth."""
+        now = datetime.utcnow()
+        expired = [
+            token for token, exp_time in self._expiry_times.items()
+            if exp_time < now
+        ]
+        for token in expired:
+            self._blacklist.discard(token)
+            del self._expiry_times[token]
+
+    def revoke_all_for_user(self, user_email: str) -> int:
+        """
+        Revoke all tokens for a specific user.
+        Note: This requires storing user info with tokens - simplified version.
+        Returns count of revoked tokens.
+        """
+        # In a full implementation, you'd track user -> tokens mapping
+        # For now, this is a placeholder for future enhancement
+        logger.info(f"Token revocation requested for user: {user_email}")
+        return 0
+
+
+# Global blacklist instance
+token_blacklist = TokenBlacklist()
 
 def _get_jwt_secret_key():
     return get_settings().jwt_secret_key
@@ -189,10 +250,15 @@ def verify_jwt_token(token: str) -> Optional[dict]:
         token: JWT token string
 
     Returns:
-        Decoded payload dict or None if invalid
+        Decoded payload dict or None if invalid/blacklisted
     """
     jwt_secret = _get_jwt_secret_key()
     if not jwt_secret:
+        return None
+
+    # Check if token is blacklisted (revoked)
+    if token_blacklist.is_blacklisted(token):
+        logger.debug("Token rejected: blacklisted")
         return None
 
     try:
@@ -200,6 +266,43 @@ def verify_jwt_token(token: str) -> Optional[dict]:
         return payload
     except JWTError:
         return None
+
+
+def blacklist_token(token: str) -> bool:
+    """
+    Add a token to the blacklist (revoke it).
+
+    Args:
+        token: JWT token to blacklist
+
+    Returns:
+        True if successfully blacklisted, False otherwise
+    """
+    try:
+        # Decode without verification to get expiry
+        # (we don't care if it's valid, just need expiry for cleanup)
+        payload = jwt.decode(
+            token,
+            _get_jwt_secret_key(),
+            algorithms=[_get_jwt_algorithm()],
+            options={"verify_exp": False}  # Allow expired tokens to be blacklisted
+        )
+
+        # Get expiration time from payload
+        exp_timestamp = payload.get("exp")
+        if exp_timestamp:
+            expires_at = datetime.fromtimestamp(exp_timestamp)
+        else:
+            # Default: blacklist for 7 days (max token lifetime)
+            expires_at = datetime.utcnow() + timedelta(days=7)
+
+        token_blacklist.add(token, expires_at)
+        logger.info(f"Token blacklisted for user: {payload.get('sub', 'unknown')}")
+        return True
+
+    except Exception as e:
+        logger.error(f"Failed to blacklist token: {e}")
+        return False
 
 
 def get_current_user(token: str) -> dict:

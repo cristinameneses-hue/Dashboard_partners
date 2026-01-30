@@ -77,6 +77,15 @@ export interface TimeSeriesResponse {
   total_pharmacies: number;
 }
 
+// Chart Group By Type
+export type ChartGroupBy = 'week' | 'month' | 'quarter' | 'year';
+
+// Partner Time Series Response
+export interface PartnerTimeSeriesResponse {
+  orders: Array<{ period: string; [key: string]: number | string }>;
+  gmv: Array<{ period: string; [key: string]: number | string }>;
+}
+
 // Shortage Metrics (global)
 export interface ShortageMetrics extends BaseMetrics {
   active_pharmacies: number;

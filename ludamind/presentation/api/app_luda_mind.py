@@ -58,8 +58,36 @@ app = Flask(
     static_folder='../web/static'
 )
 
-# Security configuration
-app.secret_key = os.getenv('FLASK_SECRET_KEY', 'luda-mind-secret-key-change-in-production')
+# Security configuration - CRITICAL: Must be set properly
+def _get_secret_key() -> str:
+    """
+    Get Flask secret key from environment.
+    - Production: MUST be set via FLASK_SECRET_KEY env var
+    - Development: Uses random key (sessions won't persist across restarts)
+    """
+    import secrets as _secrets
+
+    secret_key = os.getenv('FLASK_SECRET_KEY')
+    environment = os.getenv('ENVIRONMENT', 'development')
+
+    if environment == 'production':
+        if not secret_key or len(secret_key) < 32:
+            raise RuntimeError(
+                "CRITICAL: FLASK_SECRET_KEY must be set and at least 32 characters in production. "
+                "Generate with: python -c \"import secrets; print(secrets.token_hex(32))\""
+            )
+        return secret_key
+    else:
+        if not secret_key:
+            logger.warning(
+                "FLASK_SECRET_KEY not set - using random key. "
+                "Sessions will be invalidated on server restart. "
+                "This is only acceptable in development."
+            )
+            return _secrets.token_hex(32)
+        return secret_key
+
+app.secret_key = _get_secret_key()
 
 # ============================================================================
 # SESSION MANAGEMENT

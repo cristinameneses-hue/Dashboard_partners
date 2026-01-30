@@ -5,7 +5,8 @@ Smart Query Processor - Procesa queries usando interpretación semántica con GP
 
 import os
 import sys
-from typing import Dict, Any, Optional
+import logging
+from typing import Dict, Any, Optional, Tuple
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -13,6 +14,15 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from domain.services.query_interpreter import QueryInterpreter
 from domain.knowledge.semantic_mapping import find_field_mappings, BUSINESS_CONTEXT
+
+# Import security validator
+try:
+    from infrastructure.security import MongoQuerySecurityValidator
+    SECURITY_VALIDATOR_AVAILABLE = True
+except ImportError:
+    SECURITY_VALIDATOR_AVAILABLE = False
+
+logger = logging.getLogger(__name__)
 
 
 class SmartQueryProcessor:
@@ -26,13 +36,67 @@ class SmartQueryProcessor:
     def __init__(self, mongo_db, openai_api_key: Optional[str] = None):
         """
         Inicializa el procesador.
-        
+
         Args:
             mongo_db: Instancia de PyMongo database
             openai_api_key: API key de OpenAI
         """
         self.db = mongo_db
         self.interpreter = QueryInterpreter(openai_api_key)
+
+        # Initialize security validator
+        if SECURITY_VALIDATOR_AVAILABLE:
+            try:
+                self.validator = MongoQuerySecurityValidator()
+                logger.info("Security validator initialized for SmartQueryProcessor")
+            except Exception as e:
+                logger.warning(f"Could not initialize security validator: {e}")
+                self.validator = None
+        else:
+            logger.warning(
+                "Security validator not available - queries will not be validated. "
+                "This is a security risk in production."
+            )
+            self.validator = None
+
+    def _validate_pipeline(self, pipeline: list, collection: str) -> Tuple[bool, Optional[str]]:
+        """
+        Validate a MongoDB aggregation pipeline before execution.
+
+        Args:
+            pipeline: MongoDB aggregation pipeline
+            collection: Target collection name
+
+        Returns:
+            Tuple of (is_safe, error_message)
+        """
+        if not self.validator:
+            # Validator not available - log warning but allow in development
+            environment = os.getenv('ENVIRONMENT', 'development')
+            if environment == 'production':
+                logger.error("SECURITY: Validator not available in production - blocking query")
+                return (False, "Security validator not available - query blocked")
+            else:
+                logger.warning("Security validator not available - allowing query in development mode")
+                return (True, None)
+
+        try:
+            result = self.validator.validate_pipeline(pipeline, collection)
+
+            if not result.is_safe:
+                blocked_reasons = ', '.join(result.blocked_reasons[:3])  # Limit to first 3 reasons
+                logger.warning(f"[SECURITY] Pipeline blocked: {blocked_reasons}")
+                return (False, f"Query blocked by security validator: {blocked_reasons}")
+
+            if result.warnings:
+                logger.info(f"[SECURITY] Pipeline warnings: {', '.join(result.warnings[:3])}")
+
+            return (True, None)
+
+        except Exception as e:
+            logger.error(f"[SECURITY] Error validating pipeline: {e}")
+            # In case of validator error, deny for safety
+            return (False, f"Security validation error: {str(e)[:100]}")
     
     def process(self, query: str, mode: str) -> Dict[str, Any]:
         """
@@ -59,17 +123,17 @@ class SmartQueryProcessor:
                 try:
                     collection_name = interpretation.get('collection', 'bookings')
                     collection = getattr(self.db, collection_name)
-                    
+
                     # POST-PROCESAR: Convertir fechas de formato GPT a datetime Python
                     pipeline = self._fix_pipeline_dates(interpretation['pipeline'].copy())
-                    
+
                     # POST-PROCESAR: Asegurar conversiones de tipos en operaciones matemáticas
                     pipeline = self._ensure_type_conversions(pipeline)
-                    
+
                     # AGREGAR FILTRO TEMPORAL si time_range está especificado
                     if interpretation.get('time_range'):
                         pipeline = self._add_time_filter(pipeline, interpretation['time_range'])
-                    
+
                     # Si agrupa por target (farmacias) y no tiene lookup, añadirlo
                     if any('$group' in stage and '_id' in stage.get('$group', {}) and '$target' in str(stage['$group']['_id']) for stage in pipeline):
                         # Añadir lookup para obtener info de farmacia
@@ -83,7 +147,18 @@ class SmartQueryProcessor:
                                 "as": "pharmacy_info"
                             }
                         })
-                    
+
+                    # SECURITY: Validate pipeline before execution
+                    is_safe, error_msg = self._validate_pipeline(pipeline, collection_name)
+                    if not is_safe:
+                        logger.warning(f"[SECURITY] GPT-generated pipeline blocked: {error_msg}")
+                        return {
+                            'answer': f"❌ Consulta bloqueada por seguridad: {error_msg}",
+                            'database': 'mongodb',
+                            'confidence': 0.0,
+                            'interpretation': interpretation
+                        }
+
                     result = list(collection.aggregate(pipeline))
                 except Exception as e:
                     print(f"Error ejecutando pipeline GPT: {e}")

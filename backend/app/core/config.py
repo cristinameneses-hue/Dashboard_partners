@@ -1,13 +1,15 @@
 from pydantic_settings import BaseSettings
+from pydantic import field_validator
 from functools import lru_cache
 from typing import List, Optional
 import os
+import secrets
 
 
 class Settings(BaseSettings):
     """Application settings with environment variable support."""
 
-    # MongoDB connection for LudaFarma-PRO
+    # MongoDB connection for LudaFarma-PRO (Spain)
     # SECURITY: Must be set via environment variable, no hardcoded defaults
     mongodb_url: str = os.getenv(
         "MONGODB_URL",
@@ -15,10 +17,35 @@ class Settings(BaseSettings):
     )
     database_name: str = "LudaFarma-PRO"
 
+    # MongoDB connection for LudaFarma-Ireland (Ukie)
+    mongodb_url_ireland: str = ""  # Set via MONGODB_URL_IRELAND in .env
+    database_name_ireland: str = "LudaFarma-Ireland"
+
     # JWT Configuration
     jwt_secret_key: str = os.getenv("JWT_SECRET_KEY", "")
     jwt_algorithm: str = os.getenv("JWT_ALGORITHM", "HS256")
     jwt_expiration_minutes: int = int(os.getenv("JWT_EXPIRATION_MINUTES", "30"))
+
+    @field_validator('jwt_secret_key')
+    @classmethod
+    def validate_jwt_secret(cls, v: str) -> str:
+        """Validate JWT secret key - MUST be set in production."""
+        environment = os.getenv("ENVIRONMENT", "development")
+        if environment == "production":
+            if not v or len(v) < 32:
+                raise ValueError(
+                    "CRITICAL: JWT_SECRET_KEY must be set and at least 32 characters in production. "
+                    "Generate with: openssl rand -hex 32"
+                )
+        elif not v:
+            # Development: generate a random key but warn
+            import logging
+            logging.warning(
+                "JWT_SECRET_KEY not set - using random key. "
+                "Sessions will be invalidated on server restart."
+            )
+            return secrets.token_hex(32)
+        return v
 
     # Google OAuth Configuration
     google_client_id: str = os.getenv("GOOGLE_CLIENT_ID", "")
@@ -36,6 +63,17 @@ class Settings(BaseSettings):
 
     # Environment
     environment: str = os.getenv("ENVIRONMENT", "development")
+
+    # Cookie security - only use secure cookies in production (HTTPS)
+    @property
+    def cookie_secure(self) -> bool:
+        """Use secure cookies only in production (requires HTTPS)."""
+        return self.environment == "production"
+
+    @property
+    def cookie_samesite(self) -> str:
+        """SameSite cookie policy - lax for development, strict for production."""
+        return "strict" if self.environment == "production" else "lax"
     
     # Cancelled state ID
     cancelled_state_id: str = "5a54c525b2948c860f00000d"
@@ -49,6 +87,12 @@ class Settings(BaseSettings):
     
     # Partners without tags (can't calculate % active pharmacies)
     partners_without_tags: List[str] = ["uber", "justeat"]
+
+    # Ireland-specific partners (Ukie)
+    partners_ireland: List[str] = [
+        "justeat", "justeat-ireland", "justeat-uk",
+        "uber", "uber-ireland", "uber-uk"
+    ]
     
     # Partner tag mappings (partner name -> possible tags in pharmacies)
     partner_tags: dict = {

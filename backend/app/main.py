@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import asyncio
 import logging
 
-from app.api import ecommerce, shortage, pharmacies, auth
+from app.api import ecommerce, shortage, pharmacies, auth, ukie
 from app.core.database import connect_to_mongo, close_mongo_connection
 from app.core.config import get_settings
 
@@ -139,9 +139,24 @@ async def add_security_headers(request: Request, call_next):
 async def startup_db_client():
     try:
         await connect_to_mongo()
+        logger.info("Successfully connected to MongoDB")
     except Exception as e:
-        print(f"Warning: Could not connect to MongoDB: {e}")
-        print("Server will continue without database - some features may be unavailable")
+        error_msg = f"Failed to connect to MongoDB: {e}"
+        logger.error(error_msg)
+
+        # In production, fail fast - don't start without database
+        if settings.environment == "production":
+            raise RuntimeError(
+                f"CRITICAL: {error_msg}. "
+                "Server cannot start without database connection in production."
+            )
+        else:
+            # Development: warn but continue (allows testing without DB)
+            logger.warning(
+                "Server starting without database connection - "
+                "some features will be unavailable. "
+                "This is only allowed in development mode."
+            )
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
@@ -170,6 +185,11 @@ app.include_router(
     auth.router,
     prefix="/api",
     tags=["Authentication"]
+)
+app.include_router(
+    ukie.router,
+    prefix="/api/ukie",
+    tags=["Ukie"]
 )
 
 @app.get("/")

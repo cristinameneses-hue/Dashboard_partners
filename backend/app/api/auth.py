@@ -4,15 +4,37 @@ Authentication endpoints for Google OAuth and JWT token management.
 from fastapi import APIRouter, HTTPException, Response, Request, Depends
 from pydantic import BaseModel
 from typing import Optional
+from ..core.config import get_settings
 from ..core.security import (
     verify_google_token,
     create_access_token,
     create_refresh_token,
     verify_jwt_token,
+    blacklist_token,
     jwt_bearer
 )
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+
+
+def _set_refresh_token_cookie(response: Response, refresh_token: str) -> None:
+    """
+    Set refresh token as httpOnly cookie with proper security settings.
+
+    Security settings are environment-aware:
+    - Production: secure=True (HTTPS only), samesite=strict
+    - Development: secure=False (allows HTTP), samesite=lax
+    """
+    settings = get_settings()
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=settings.cookie_secure,
+        samesite=settings.cookie_samesite,
+        max_age=60 * 60 * 24 * 7,  # 7 days
+        path="/api/auth"
+    )
 
 
 class GoogleToken(BaseModel):
@@ -72,15 +94,7 @@ async def google_login(token: GoogleToken, response: Response):
     refresh_token = create_refresh_token(token_data)
 
     # Set refresh token as httpOnly cookie
-    response.set_cookie(
-        key="refresh_token",
-        value=refresh_token,
-        httponly=True,
-        secure=True,  # Only send over HTTPS
-        samesite="lax",
-        max_age=60 * 60 * 24 * 7,  # 7 days
-        path="/api/auth"
-    )
+    _set_refresh_token_cookie(response, refresh_token)
 
     return TokenResponse(
         access_token=access_token,
@@ -157,15 +171,7 @@ async def google_login_with_token(token: GoogleAccessToken, response: Response):
     refresh_token = create_refresh_token(token_data)
 
     # Set refresh token as httpOnly cookie
-    response.set_cookie(
-        key="refresh_token",
-        value=refresh_token,
-        httponly=True,
-        secure=True,
-        samesite="lax",
-        max_age=60 * 60 * 24 * 7,
-        path="/api/auth"
-    )
+    _set_refresh_token_cookie(response, refresh_token)
 
     return TokenResponse(
         access_token=access_token,
@@ -221,15 +227,7 @@ async def refresh_access_token(request: Request, response: Response):
     new_refresh_token = create_refresh_token(token_data)
 
     # Update refresh token cookie
-    response.set_cookie(
-        key="refresh_token",
-        value=new_refresh_token,
-        httponly=True,
-        secure=True,
-        samesite="lax",
-        max_age=60 * 60 * 24 * 7,
-        path="/api/auth"
-    )
+    _set_refresh_token_cookie(response, new_refresh_token)
 
     return TokenResponse(
         access_token=new_access_token,
@@ -244,16 +242,36 @@ async def refresh_access_token(request: Request, response: Response):
 
 
 @router.post("/logout")
-async def logout(response: Response):
+async def logout(request: Request, response: Response):
     """
-    Log out user by clearing the refresh token cookie.
+    Log out user by clearing cookies and blacklisting tokens.
+
+    This endpoint:
+    1. Blacklists the refresh token (prevents reuse)
+    2. Clears the refresh token cookie
+
+    Note: Access tokens in Authorization header should also be discarded
+    by the client. They will be blacklisted if provided.
 
     Args:
+        request: FastAPI request to get tokens
         response: FastAPI response to clear cookie
 
     Returns:
         Success message
     """
+    # Blacklist refresh token from cookie
+    refresh_token = request.cookies.get("refresh_token")
+    if refresh_token:
+        blacklist_token(refresh_token)
+
+    # Blacklist access token if provided in header
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        access_token = auth_header[7:]  # Remove "Bearer " prefix
+        blacklist_token(access_token)
+
+    # Clear the refresh token cookie
     response.delete_cookie(
         key="refresh_token",
         path="/api/auth"
